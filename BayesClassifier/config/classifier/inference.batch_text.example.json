@@ -1,0 +1,12 @@
+{
+  "input_file": "../../input/sample_input.txt",
+  "output_file": "../../output/predictions_text.csv",
+  "output_use_index": true,
+  "input_format": "text",
+  "model_config": "../model/model.configuration.example.json",
+  "layout": {
+    "truth_field": "truth",
+    "feature_fields": ["temperature", "pressure", "humidity"],
+    "delimiter": "SPACE"
+  }
+}

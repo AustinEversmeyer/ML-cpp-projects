@@ -1,0 +1,36 @@
+{
+  "computation_mode": "log",
+  "class_groups": [
+    { "name": "GroupA", "classes": ["Class0", "Class1"] },
+    { "name": "GroupB", "classes": ["Class2"] }
+  ],
+  "classes": [
+    {
+      "name": "Class0",
+      "prior": 0.34,
+      "features": [
+        { "name": "temperature", "type": "gaussian", "params": { "mean": 0.5, "sigma": 0.5 } },
+        { "name": "pressure", "type": "rayleigh", "params": { "sigma": 1.5 } },
+        { "name": "humidity", "type": "gaussian", "params": { "mean": 50.0, "sigma": 6.0 } }
+      ]
+    },
+    {
+      "name": "Class1",
+      "prior": 0.33,
+      "features": [
+        { "name": "temperature", "type": "gaussian", "params": { "mean": 2.5, "sigma": 0.5 } },
+        { "name": "pressure", "type": "rayleigh", "params": { "sigma": 1.0 } },
+        { "name": "humidity", "type": "gaussian", "params": { "mean": 70.0, "sigma": 5.0 } }
+      ]
+    },
+    {
+      "name": "Class2",
+      "prior": 0.33,
+      "features": [
+        { "name": "temperature", "type": "gaussian", "params": { "mean": -0.5, "sigma": 0.4 } },
+        { "name": "pressure", "type": "rayleigh", "params": { "sigma": 0.9 } },
+        { "name": "humidity", "type": "gaussian", "params": { "mean": 30.0, "sigma": 4.0 } }
+      ]
+    }
+  ]
+}

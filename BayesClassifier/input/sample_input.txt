@@ -1,0 +1,7 @@
+timestep truth temperature pressure humidity
+1 Class0 0.4 1.8 48
+2 Class0 0.6 2.0 52
+3 Class1 2.7 1.1 72
+4 Class1 2.3 0.9 68
+5 Class2 -0.6 0.7 32
+6 Class2 -0.4 0.9 28

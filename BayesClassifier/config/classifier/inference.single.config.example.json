@@ -1,0 +1,5 @@
+{
+  "model_config": "../model/model.configuration.example.json",
+  "single_features": [2.6, 1.1, 72.0],
+  "single_truth": "Class1"
+}

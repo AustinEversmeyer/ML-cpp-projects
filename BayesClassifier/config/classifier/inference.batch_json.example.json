@@ -1,0 +1,11 @@
+{
+  "input_file": "../../input/sample_input.json",
+  "output_file": "../../output/predictions_named.csv",
+  "output_use_index": true,
+  "input_format": "json",
+  "model_config": "../model/model.configuration.example.json",
+  "layout": {
+    "truth_field": "label",
+    "feature_fields": ["temperature", "pressure", "humidity"]
+  }
+}
