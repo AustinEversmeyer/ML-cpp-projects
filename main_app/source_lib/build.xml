@@ -1,0 +1,114 @@
+<!-- Ant project for building source_lib and its dependent static libraries. -->
+<!-- name: label shown by Ant in build output. -->
+<!-- basedir: root used for relative paths in this file. -->
+<!-- default: target executed by plain `ant` with no explicit target name. -->
+<project name="source_lib" basedir="." default="all">
+
+  <!--
+    Build strategy overview:
+    1) `lib` builds the external BayesClassifier static library.
+    2) `bayes-pipeline` builds the first-party BayesPipeline static library.
+    3) `compile` invokes make to build libsource_lib.so and main_app.
+    4) `all` chains the full flow.
+    5) `clean` removes generated artifacts.
+  -->
+
+  <!-- Absolute/normalized source path to BayesClassifier dependency. -->
+  <property name="bayes.src.dir"     value="${basedir}/deps/BayesClassifier"/>
+  <!-- Build output directory for BayesClassifier CMake files/artifacts. -->
+  <property name="bayes.build.dir"   value="${basedir}/build/bayes"/>
+  <!-- Public headers for BayesClassifier, forwarded to downstream builds. -->
+  <property name="bayes.include.dir" value="${bayes.src.dir}/include"/>
+
+  <!-- Source directory for the first-party BayesPipeline project. -->
+  <property name="pipeline.src.dir"   value="${basedir}/deps/BayesPipeline"/>
+  <!-- Build output directory for BayesPipeline CMake files/artifacts. -->
+  <property name="pipeline.build.dir" value="${basedir}/deps/BayesPipeline/build"/>
+
+  <!-- Target: configure and build BayesClassifier static library. -->
+  <target name="lib">
+    <!-- Ensure the BayesClassifier build directory exists before CMake configure. -->
+    <mkdir dir="${bayes.build.dir}"/>
+
+    <!-- CMake configure step for BayesClassifier. -->
+    <exec executable="cmake" failonerror="true" dir="${basedir}">
+      <!-- -S: source directory for the CMake project. -->
+      <arg value="-S"/><arg value="${bayes.src.dir}"/>
+      <!-- -B: out-of-source build directory for generated files. -->
+      <arg value="-B"/><arg value="${bayes.build.dir}"/>
+      <!-- Build-type selection used by single-config generators. -->
+      <arg value="-DCMAKE_BUILD_TYPE=Release"/>
+      <!-- Build position-independent objects for static-lib embedding into .so. -->
+      <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=ON"/>
+    </exec>
+
+    <!-- CMake build step for BayesClassifier. -->
+    <exec executable="cmake" failonerror="true" dir="${basedir}">
+      <!-- CMake option double-dash build: choose the build directory to compile from. -->
+      <arg value="--build"/><arg value="${bayes.build.dir}"/>
+      <!-- CMake option double-dash target: build only naive_bayes_core static library target. -->
+      <arg value="--target"/><arg value="naive_bayes_core"/>
+      <!-- CMake option double-dash config: configuration for multi-config generators; harmless elsewhere. -->
+      <arg value="--config"/><arg value="Release"/>
+    </exec>
+  </target>
+
+  <!-- Target: configure and build first-party BayesPipeline static library. -->
+  <!-- depends="lib" guarantees BayesClassifier headers/libs are available first. -->
+  <target name="bayes-pipeline" depends="lib">
+    <!-- Ensure BayesPipeline build directory exists before CMake configure. -->
+    <mkdir dir="${pipeline.build.dir}"/>
+
+    <!-- CMake configure step for BayesPipeline. -->
+    <exec executable="cmake" failonerror="true" dir="${basedir}">
+      <!-- -S: source directory for BayesPipeline CMake project. -->
+      <arg value="-S"/><arg value="${pipeline.src.dir}"/>
+      <!-- -B: out-of-source build directory for BayesPipeline. -->
+      <arg value="-B"/><arg value="${pipeline.build.dir}"/>
+      <!-- Use optimized Release configuration for pipeline library build. -->
+      <arg value="-DCMAKE_BUILD_TYPE=Release"/>
+      <!-- Ensure objects are PIC for linking into shared objects later. -->
+      <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=ON"/>
+      <!-- Pass BayesClassifier include path into BayesPipeline configure. -->
+      <arg value="-DBAYES_INCLUDE_DIR=${bayes.include.dir}"/>
+    </exec>
+
+    <!-- CMake build step for BayesPipeline. -->
+    <exec executable="cmake" failonerror="true" dir="${basedir}">
+      <!-- CMake option double-dash build: compile in the configured build folder. -->
+      <arg value="--build"/><arg value="${pipeline.build.dir}"/>
+      <!-- CMake option double-dash config: select Release for multi-config generators. -->
+      <arg value="--config"/><arg value="Release"/>
+    </exec>
+  </target>
+
+  <!-- Target: compile source_lib application/library via GNU make. -->
+  <!-- depends="bayes-pipeline" ensures both static deps are already built. -->
+  <target name="compile" depends="bayes-pipeline">
+    <!-- Invoke make in source_lib working directory. -->
+    <exec executable="make" failonerror="true" dir="${basedir}">
+      <!-- Export Bayes static-lib directory expected by makefile variables. -->
+      <arg value="BAYES_LIB_DIR=${bayes.build.dir}"/>
+      <!-- Export Bayes include directory expected by makefile variables. -->
+      <arg value="BAYES_INCLUDE_DIR=${bayes.include.dir}"/>
+    </exec>
+  </target>
+
+  <!-- Default target alias; runs full compile pipeline through dependencies. -->
+  <target name="all" depends="compile"/>
+
+  <!-- Cleanup target for all generated outputs in this module. -->
+  <target name="clean">
+    <!-- Remove BayesClassifier CMake build tree and artifacts. -->
+    <delete dir="${bayes.build.dir}"/>
+    <!-- Remove BayesPipeline CMake build tree and artifacts. -->
+    <delete dir="${pipeline.build.dir}"/>
+    <!-- Run make clean for source_lib local object files/binaries. -->
+    <!-- failonerror=false allows clean to proceed even if files are absent. -->
+    <exec executable="make" failonerror="false" dir="${basedir}">
+      <!-- make target: clean -->
+      <arg value="clean"/>
+    </exec>
+  </target>
+
+</project>

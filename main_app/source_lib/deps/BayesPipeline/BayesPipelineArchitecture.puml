@@ -1,0 +1,100 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+skinparam packageStyle rectangle
+left to right direction
+
+title BayesPipeline Architecture
+
+package "Messaging Layer" {
+  class TestMessageProcessor1
+  class TestMessageProcessor2
+}
+
+package "BayesPipeline" {
+  interface IFeaturePublisher {
+    + PublishFeature(data: FeatureData)
+  }
+
+  class BayesRuntimeManager {
+    + Start()
+    + Stop()
+    + PublishFeature(data: FeatureData)
+    + GetLatestResults()
+    + GetOutputFile()
+    - Run()
+    - WritePredictionsCsv()
+  }
+
+  class IngestQueue {
+    + Push(event: FeatureData)
+    + Pop(out event: FeatureData)
+    + Close()
+  }
+
+  class BayesClassifierManager {
+    + ClassifyIfReady()
+    + GetLatestResults()
+    - RecordFeatureSample(data: FeatureData)
+    - Classify()
+  }
+
+  class FeatureAlignmentStore {
+    + RecordFeatureSample(data: FeatureData)
+    + BuildJoinedFeatureVectors()
+    + HaveAllFeaturesUpdated()
+    + ResetUpdatedFeatures()
+  }
+
+  class FeatureData {
+    + id: int
+    + time: double
+    + feature_name: string
+    + value: double
+  }
+
+  class JoinedFeatureVector {
+    + id: int
+    + time: double
+    + feature_values: map<string,double>
+  }
+
+  class ClassificationResult {
+    + id: int
+    + time: double
+    + predicted_class: string
+    + predicted_prob: double
+  }
+}
+
+package "BayesClassifier" {
+  class NaiveBayes
+  class WritePredictionsCsv
+}
+
+TestMessageProcessor1 --> IFeaturePublisher : PublishFeature(FeatureData)
+TestMessageProcessor2 --> IFeaturePublisher : PublishFeature(FeatureData)
+
+BayesRuntimeManager ..|> IFeaturePublisher
+BayesRuntimeManager --> IngestQueue : Push/Pop FeatureData
+BayesRuntimeManager --> BayesClassifierManager : RecordFeatureSample / ClassifyIfReady
+BayesRuntimeManager --> WritePredictionsCsv : persist outputs
+
+BayesClassifierManager --> FeatureAlignmentStore : sample+join+readiness
+BayesClassifierManager --> NaiveBayes : PredictClass/PredictPosteriors
+BayesClassifierManager --> ClassificationResult
+
+FeatureAlignmentStore --> FeatureData
+FeatureAlignmentStore --> JoinedFeatureVector
+
+note right of BayesRuntimeManager
+Single worker thread drains IngestQueue.
+Each FeatureData event may trigger ClassifyIfReady().
+end note
+
+note right of BayesClassifierManager
+Feature order for model input comes from
+NaiveBayes::FeatureNames().
+end note
+
+@enduml

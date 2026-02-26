@@ -1,0 +1,23 @@
+<!-- Root Ant project definition. -->
+<!-- name: project display name shown in Ant logs. -->
+<!-- basedir: this build file's working root. -->
+<!-- default: target run when only `ant` is invoked. -->
+<project name="TIC" basedir="." default="all">
+
+  <!-- Declares the child module folder handled by this top-level build. -->
+  <property name="dirs" value="source_lib"/>
+
+  <!-- Default target: delegates full build into the source_lib sub-build. -->
+  <target name="all">
+    <!-- Run source_lib/build.xml target=all. -->
+    <!-- inheritAll=false keeps parent properties from leaking into child build. -->
+    <ant dir="source_lib" target="all" inheritAll="false"/>
+  </target>
+
+  <!-- Clean target: delegates cleanup into the source_lib sub-build. -->
+  <target name="clean">
+    <!-- Run source_lib/build.xml target=clean. -->
+    <ant dir="source_lib" target="clean" inheritAll="false"/>
+  </target>
+
+</project>

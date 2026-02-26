@@ -11,6 +11,7 @@ add_library(naive_bayes_core
   src/core/factory.cpp
   src/core/naive_bayes.cpp
   src/io/model_loader.cpp
+  src/io/output_write.cpp
 )
 target_include_directories(naive_bayes_core PUBLIC include)
 
@@ -20,7 +21,6 @@ add_executable(naive_bayes_cli
   src/pipeline/config_resolve.cpp
   src/pipeline/config_parse.cpp
   src/io/input_load.cpp
-  src/io/output_write.cpp
   src/test/tester.cpp
 )
 target_link_libraries(naive_bayes_cli PRIVATE naive_bayes_core)

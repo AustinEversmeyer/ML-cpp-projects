@@ -1,0 +1,10 @@
+time_step,truth_label,predicted_class,predicted_prob,prob_TargetSmall,prob_TargetMedium,prob_TargetLarge,predicted_group,predicted_group_prob,group_prob_SmallTargets,group_prob_LargeTargets
+0.000000,nan,TargetMedium,0.913318,0.086431,0.913318,0.000251,LargeTargets,0.913569,0.086431,0.913569
+0.000000,nan,TargetMedium,0.996498,0.000003,0.996498,0.003498,LargeTargets,0.999997,0.000003,0.999997
+0.000000,nan,TargetMedium,0.989236,0.000000,0.989236,0.010763,LargeTargets,1.000000,0.000000,1.000000
+4.000000,nan,TargetMedium,0.995205,0.004295,0.995205,0.000499,LargeTargets,0.995705,0.004295,0.995705
+5.000000,nan,TargetMedium,0.988394,0.011203,0.988394,0.000403,LargeTargets,0.988797,0.011203,0.988797
+5.000000,nan,TargetMedium,0.994786,0.004813,0.994786,0.000401,LargeTargets,0.995187,0.004813,0.995187
+5.000000,nan,TargetMedium,0.988394,0.011203,0.988394,0.000403,LargeTargets,0.988797,0.011203,0.988797
+5.000000,nan,TargetMedium,0.994786,0.004813,0.994786,0.000401,LargeTargets,0.995187,0.004813,0.995187
+6.000000,nan,TargetMedium,0.995044,0.000000,0.995044,0.004956,LargeTargets,1.000000,0.000000,1.000000
