@@ -8,10 +8,26 @@ namespace BayesPipeline {
 BayesRuntimeManager::BayesRuntimeManager(std::filesystem::path model_config_path,
                                          std::filesystem::path output_file,
                                          size_t max_records,
-                                         double time_tolerance,
+                                         int64_t time_tolerance_ns,
                                          ClassificationTrigger trigger,
                                          bool   allow_partial)
-    : manager_(std::move(model_config_path), max_records, time_tolerance, trigger, allow_partial)
+    : manager_(std::move(model_config_path), max_records, time_tolerance_ns, trigger, allow_partial)
+    , output_file_(std::move(output_file))
+{}
+
+BayesRuntimeManager::BayesRuntimeManager(std::filesystem::path model_config_path,
+                                         std::filesystem::path output_file,
+                                         size_t max_records,
+                                         int64_t time_tolerance_ns,
+                                         EvaluationPolicy evaluation_policy,
+                                         PartialPolicy partial_policy,
+                                         int64_t partial_grace_window_ns)
+    : manager_(std::move(model_config_path),
+               max_records,
+               time_tolerance_ns,
+               evaluation_policy,
+               partial_policy,
+               partial_grace_window_ns)
     , output_file_(std::move(output_file))
 {}
 
@@ -64,12 +80,15 @@ void BayesRuntimeManager::Run() {
         if (manager_.ClassifyIfReady()) {
             for (const ClassificationResult& r : manager_.GetLatestResults()) {
                 naive_bayes::pipeline::BatchPredictionRow row;
-                row.timestep = r.time;
+                row.time_ns = r.time_ns;
+                row.id = r.id;
                 if (r.truth_label.has_value() && !r.truth_label.value().empty()) {
                     row.truth_label = r.truth_label.value();
                 } else {
                     row.truth_label = "nan";
                 }
+                row.classification_state = r.classification_state;
+                row.feature_inputs = r.feature_inputs;
                 row.predicted_class = r.predicted_class;
                 row.predicted_prob = r.predicted_prob;
                 row.probabilities = r.posteriors;

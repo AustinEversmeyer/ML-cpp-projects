@@ -4,6 +4,8 @@
 #include "TestMessageProcessor2.h"
 
 #include <chrono>
+#include <filesystem>
+#include <functional>
 #include <random>
 #include <variant>
 #include <vector>
@@ -55,7 +57,9 @@ public:
     // --- Manual population ------------------------------------------------
 
     void Enqueue(SimMessage msg);
+    void EnqueueMany(const std::vector<SimMessage>& messages);
     void Clear();
+    void SortByTimestamp();
 
     // --- Synthetic population ---------------------------------------------
     //
@@ -78,10 +82,21 @@ public:
 
     // Fire every queued message through its processor, in order.
     void Run();
+    void RunStepwise(const std::function<void(std::size_t, const SimMessage&)>& after_dispatch);
 
     // Fire messages with a real-time pause between each one.
     void RunRealTime(std::chrono::milliseconds msg_interval
                          = std::chrono::milliseconds(100));
+
+    // --- Deterministic scenario loading -----------------------------------
+    //
+    // CSV format (header required):
+    //   seq,id,source,time_ns,value,truth_label
+    // source: "rcs" (proc1) or "length" (proc2)
+    // truth_label: optional (empty means no truth label)
+    void LoadScenarioFromCsv(const std::filesystem::path& csv_path,
+                             bool clear_first = true,
+                             bool sort_by_timestamp = false);
 
     // How many messages are in the queue.
     size_t Size() const { return queue_.size(); }

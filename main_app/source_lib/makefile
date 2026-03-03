@@ -50,6 +50,8 @@ LIB_OBJS += $(OBJDIR)/TestMessageProcessor2.o
 TARGETLIB := libsource_lib.so
 # Output executable name.
 TARGETAPP := main_app
+# Output deterministic scenario test executable.
+TARGETSCENARIO := scenario_tests
 
 # Declare pseudo-targets that do not map to real files.
 .PHONY: all clean DIRS
@@ -81,8 +83,21 @@ $(TARGETAPP): DIRS $(OBJDIR)/main.o $(LIB_OBJS)
 	    -ldl -lpthread
 	@echo "Built $(TARGETAPP)  →  run with:  ./$(TARGETAPP)"
 
+# Link deterministic scenario test executable.
+$(TARGETSCENARIO): DIRS $(OBJDIR)/scenario_tests.o $(OBJDIR)/MessageSimulator.o $(OBJDIR)/TestMessageProcessor1.o $(OBJDIR)/TestMessageProcessor2.o
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJDIR)/scenario_tests.o $(OBJDIR)/MessageSimulator.o $(OBJDIR)/TestMessageProcessor1.o $(OBJDIR)/TestMessageProcessor2.o \
+	    -Wl,--whole-archive $(BAYES_PIPELINE_DIR)/build/libbayes_pipeline.a \
+	                        $(BAYES_LIB_DIR)/libnaive_bayes_core.a \
+	    -Wl,--no-whole-archive \
+	    -ldl -lpthread
+	@echo "Built $(TARGETSCENARIO)  →  run with:  ./$(TARGETSCENARIO)"
+
 # Compile top-level entry point main.cpp into object file.
 $(OBJDIR)/main.o: $(SRCDIR)/main.cpp $(SRCDIR)/main_app.h
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+# Compile deterministic scenario tests entry point.
+$(OBJDIR)/scenario_tests.o: $(SRCDIR)/tests/scenario_tests.cpp $(SRCDIR)/messaging/MessageSimulator.h
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 # Compile MainApp implementation into object file.
@@ -103,4 +118,4 @@ $(OBJDIR)/TestMessageProcessor2.o: $(SRCDIR)/messaging/TestMessageProcessor2.cpp
 
 # Remove generated objects and primary build outputs.
 clean:
-	rm -rf $(OBJDIR) $(TARGETLIB) $(TARGETAPP)
+	rm -rf $(OBJDIR) $(TARGETLIB) $(TARGETAPP) $(TARGETSCENARIO)

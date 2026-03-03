@@ -45,13 +45,15 @@ sys.path.insert(0, str(ROOT_DIR))
 from tools.scripts.plot_feature_pdfs import plot_feature_pdfs
 
 # ---------- Editable defaults  ----------
-DEFAULT_CSV_PATH = "tools/outputs/synthetic_predictions.csv"
+DEFAULT_CSV_PATH = str(
+    (ROOT_DIR.parent / "main_app" / "source_lib" / "bayes_classifier_output.csv").resolve()
+)
 DEFAULT_TRUTH_COLUMN = "truth_label"
 DEFAULT_PRED_COLUMN = "predicted_class"
 DEFAULT_PROB_PREFIX = "prob_"
-DEFAULT_OUTPUT_DIR = "analysis_outputs"
+DEFAULT_OUTPUT_DIR = "analysis_outputs_runtime"
 DEFAULT_SHOW = True
-DEFAULT_CRITICAL_CLASSES: list[str] = ["class_0"]
+DEFAULT_CRITICAL_CLASSES: list[str] = ["TargetSmall"]
 DEFAULT_CAST_LABELS_TO_CATEGORY = True  # set False if you prefer to keep original dtypes
 DEFAULT_PDF_PLOTS = False
 DEFAULT_PDF_MODEL_CONFIG = "tools/outputs/wine_model.configuration.json"

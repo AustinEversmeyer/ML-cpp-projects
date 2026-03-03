@@ -5,6 +5,7 @@
 #include "PipelinePublishers.h"
 #include "pipeline/pipeline_config.h"
 
+#include <cstdint>
 #include <filesystem>
 #include <thread>
 
@@ -16,9 +17,18 @@ public:
         std::filesystem::path model_config_path,
         std::filesystem::path output_file    = "bayes_classifier_output.csv",
         size_t max_records                   = FeatureAlignmentStore::kDefaultMaxRecords,
-        double time_tolerance                = FeatureAlignmentStore::kDefaultTimeTolerance,
+        int64_t time_tolerance_ns            = FeatureAlignmentStore::kDefaultTimeToleranceNs,
         ClassificationTrigger trigger        = ClassificationTrigger::kAllFeaturesUpdated,
         bool   allow_partial                 = false);
+
+    explicit BayesRuntimeManager(
+        std::filesystem::path model_config_path,
+        std::filesystem::path output_file,
+        size_t max_records,
+        int64_t time_tolerance_ns,
+        EvaluationPolicy evaluation_policy,
+        PartialPolicy partial_policy,
+        int64_t partial_grace_window_ns = BayesClassifierManager::kDefaultPartialGraceWindowNs);
     ~BayesRuntimeManager();
 
     void Start();

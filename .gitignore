@@ -1,4 +1,22 @@
+# Build folders
 build/
+
+# C/C++ build artifacts
+**/obj/
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+*.out
+
+# Project binaries with no extension
+main_app/source_lib/main_app
+main_app/source_lib/scenario_tests
+main_app/source_lib/libsource_lib.so
+
 **/venv/
 *output*/
 __pycache__/

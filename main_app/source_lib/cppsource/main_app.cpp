@@ -18,9 +18,10 @@ MainApp::MainApp() {
         model_path,
         "bayes_classifier_output.csv",
         BayesPipeline::FeatureAlignmentStore::kDefaultMaxRecords,
-        BayesPipeline::FeatureAlignmentStore::kDefaultTimeTolerance,
-        BayesPipeline::ClassificationTrigger::kAllFeaturesUpdated,
-        /*allow_partial=*/false);
+        BayesPipeline::FeatureAlignmentStore::kDefaultTimeToleranceNs,
+        BayesPipeline::EvaluationPolicy::kHybridDeadline,
+        BayesPipeline::PartialPolicy::kAllowAfterDeadline,
+        /*partial_grace_window_ns=*/200000000LL);
 
     // Processors map incoming messages to sink-owned structs and publish them.
     proc1_ = std::make_unique<TestMessageProcessor1>(*myBayesRuntimeManager);
@@ -50,7 +51,8 @@ void MainApp::Run() {
     std::cout << "\n=== Classification Results ===\n";
     for (const auto& r : results) {
         std::cout << "  ID=" << r.id
-                  << "  t=" << r.time
+                  << "  t_ns=" << r.time_ns
+                  << "  state=" << r.classification_state
                   << "  class=" << r.predicted_class
                   << "  prob=" << r.predicted_prob
                   << (r.is_partial ? "  [partial]" : "") << "\n";

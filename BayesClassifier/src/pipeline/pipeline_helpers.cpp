@@ -1,6 +1,7 @@
 #include "pipeline/pipeline_helpers.h"
 
 #include <algorithm>
+#include <cmath>
 #include <iomanip>
 #include <iostream>
 #include <limits>
@@ -15,6 +16,8 @@
 namespace naive_bayes::pipeline {
 
 namespace {
+
+constexpr double kNsPerSecond = 1000000000.0;
 
 struct JsonPredictionInputs {
   std::vector<double> features;
@@ -81,6 +84,21 @@ SinglePrediction RunPredictionResult(const NaiveBayes& clf,
   return result;
 }
 
+std::vector<std::pair<std::string, double>> BuildFeatureInputs(
+    const std::vector<std::string>& feature_names,
+    const std::vector<double>& features) {
+  if (feature_names.size() != features.size()) {
+    throw std::runtime_error("Feature name/value count mismatch while building output row");
+  }
+
+  std::vector<std::pair<std::string, double>> feature_inputs;
+  feature_inputs.reserve(feature_names.size());
+  for (std::size_t i = 0; i < feature_names.size(); ++i) {
+    feature_inputs.emplace_back(feature_names[i], features[i]);
+  }
+  return feature_inputs;
+}
+
 }  // namespace
 
 NaiveBayes LoadModel(InferenceConfig& config) {
@@ -94,13 +112,14 @@ NaiveBayes LoadModel(InferenceConfig& config) {
 
 std::vector<BatchPredictionRow> RunInference(const NaiveBayes& clf,
                                              const std::vector<Observation>& observations) {
+  const std::vector<std::string>& feature_names = clf.FeatureNames();
   std::vector<BatchPredictionRow> prediction_rows;
   prediction_rows.reserve(observations.size());
   for (const Observation& observation : observations) {
     SinglePrediction result = RunPredictionResult(clf, observation.features);
 
     BatchPredictionRow row;
-    row.timestep = observation.timestep;
+    row.time_ns = static_cast<int64_t>(std::llround(observation.timestep * kNsPerSecond));
     row.truth_label = observation.truth_label;
     row.predicted_class = std::move(result.predicted_class);
     row.predicted_prob = result.predicted_prob;
@@ -108,6 +127,7 @@ std::vector<BatchPredictionRow> RunInference(const NaiveBayes& clf,
     row.predicted_group = std::move(result.predicted_group);
     row.predicted_group_prob = result.predicted_group_prob;
     row.group_probabilities = std::move(result.group_probabilities);
+    row.feature_inputs = BuildFeatureInputs(feature_names, observation.features);
     prediction_rows.push_back(std::move(row));
   }
   return prediction_rows;
@@ -160,10 +180,12 @@ BatchPredictionRow PredictFromJsonObject(const NaiveBayes& clf,
                                          const naive_bayes::io::Json& json_obj) {
   JsonPredictionInputs inputs = ExtractJsonInputs(layout, json_obj);
   SinglePrediction result = RunPredictionResult(clf, inputs.features);
+  const std::vector<std::string>& feature_names = clf.FeatureNames();
 
   BatchPredictionRow row;
-  row.timestep = inputs.timestep;
+  row.time_ns = static_cast<int64_t>(std::llround(inputs.timestep * kNsPerSecond));
   row.truth_label = inputs.truth_label;
+  row.feature_inputs = BuildFeatureInputs(feature_names, inputs.features);
   row.predicted_class = std::move(result.predicted_class);
   row.predicted_prob = result.predicted_prob;
   row.probabilities = std::move(result.probabilities);

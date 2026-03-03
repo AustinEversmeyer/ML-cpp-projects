@@ -2,6 +2,9 @@
 
 #include "PipelinePublishers.h"
 
+#include <optional>
+#include <string>
+
 // ---------------------------------------------------------------------------
 // TestMessageProcessor1
 //
@@ -13,6 +16,7 @@ struct Proc1Message {
     int    id;
     double time;
     double rcs;
+    std::optional<std::string> truth_label = std::nullopt;
 };
 
 class TestMessageProcessor1 {

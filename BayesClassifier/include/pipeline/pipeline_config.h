@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -34,8 +35,11 @@ struct Observation {
 };
 
 struct BatchPredictionRow {
-  double timestep{};
+  int64_t time_ns{};
+  std::optional<int> id;
   std::string truth_label;
+  std::string classification_state = "full";
+  std::vector<std::pair<std::string, double>> feature_inputs;
   std::string predicted_class;
   double predicted_prob{};
   std::vector<std::pair<std::string, double>> probabilities;

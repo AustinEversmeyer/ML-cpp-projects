@@ -2,6 +2,7 @@
 
 #include <deque>
 #include <cstddef>
+#include <cstdint>
 #include <map>
 #include <optional>
 #include <set>
@@ -16,14 +17,26 @@ enum class ClassificationTrigger {
     kAnyFeatureUpdated,     // trigger on any feature arrival
 };
 
+enum class EvaluationPolicy {
+    kImmediateAnyArrival,
+    kPrimaryOnly,
+    kHybridDeadline,
+};
+
+enum class PartialPolicy {
+    kDisallow,
+    kAllowAfterDeadline,
+    kAlwaysAllow,
+};
+
 struct FeatureEntry {
-    double time;
+    int64_t time_ns;
     double value;
 };
 
 struct FeatureData {
     int id;
-    double time;
+    int64_t time_ns;
     std::string feature_name;
     double value;
     std::optional<std::string> truth_label;
@@ -31,7 +44,7 @@ struct FeatureData {
 
 struct JoinedFeatureVector {
     int    id;
-    double time;
+    int64_t anchor_time_ns;
     std::map<std::string, double> feature_values; // missing features stored as NaN when allow_partial
     std::optional<std::string> truth_label;
     bool is_partial = false; // true if any feature was missing / out of tolerance
@@ -40,11 +53,11 @@ struct JoinedFeatureVector {
 class FeatureAlignmentStore {
 public:
     static constexpr size_t kDefaultMaxRecords = 10;
-    static constexpr double kDefaultTimeTolerance = 1.0; // seconds
+    static constexpr int64_t kDefaultTimeToleranceNs = 1000000000LL; // 1 second
 
     FeatureAlignmentStore(std::vector<std::string> model_feature_order,
                           size_t max_records = kDefaultMaxRecords,
-                          double time_tolerance = kDefaultTimeTolerance);
+                          int64_t time_tolerance_ns = kDefaultTimeToleranceNs);
 
     void RecordFeatureSample(const FeatureData& data);
 
@@ -54,10 +67,12 @@ public:
 
     void ResetUpdatedFeatures();
 
+    const std::string& PrimaryFeatureName() const;
+
 private:
     std::vector<std::string> model_feature_order_;
     size_t max_records_;
-    double time_tolerance_;
+    int64_t time_tolerance_ns_;
 
     std::map<int, std::map<std::string, std::deque<FeatureEntry>>> samples_by_id_and_feature_;
     std::map<int, std::string> truth_label_by_id_;

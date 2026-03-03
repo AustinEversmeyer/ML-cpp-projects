@@ -1,0 +1,11 @@
+seq,id,source,time_ns,value,truth_label
+1,100,rcs,1000000000,5.80,TargetMedium
+2,100,length,1000000000,2.10,TargetMedium
+3,200,rcs,2000000000,6.25,TargetMedium
+4,300,rcs,2400000000,5.50,TargetSmall
+5,200,length,2260000000,2.40,TargetMedium
+6,300,length,2600000000,1.20,TargetSmall
+7,400,length,3000000000,2.60,TargetMedium
+8,400,rcs,3200000000,6.00,TargetMedium
+9,500,rcs,4000000000,6.90,TargetLarge
+10,500,length,4820000000,3.30,TargetLarge

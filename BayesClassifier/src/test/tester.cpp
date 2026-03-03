@@ -423,10 +423,71 @@ void TestCsvGroupColumns() {
     std::getline(input, header);
 
     const std::string expected_header =
-        "time_step,truth_label,predicted_class,predicted_prob,prob_A,prob_B,"
+        "time_ns,id,truth_label,classification_state,feature_x,predicted_class,predicted_prob,prob_A,prob_B,"
         "predicted_group,predicted_group_prob,group_prob_GroupA,group_prob_GroupB";
     if (header != expected_header) {
         throw std::runtime_error("Grouped CSV header mismatch: " + header);
+    }
+}
+
+void TestCsvFeatureInputsAndIdColumns() {
+    std::cout << "[Test] CSV includes id and feature input columns..." << std::endl;
+
+    std::vector<naive_bayes::pipeline::BatchPredictionRow> rows;
+
+    naive_bayes::pipeline::BatchPredictionRow row1;
+    row1.time_ns = 10000000000LL;
+    row1.id = 7;
+    row1.truth_label = "truthA";
+    row1.classification_state = "partial";
+    row1.feature_inputs = {
+        {"x", 1.25},
+        {"y", std::numeric_limits<double>::quiet_NaN()},
+    };
+    row1.predicted_class = "A";
+    row1.predicted_prob = 0.9;
+    row1.probabilities = {{"A", 0.9}, {"B", 0.1}};
+    rows.push_back(std::move(row1));
+
+    naive_bayes::pipeline::BatchPredictionRow row2;
+    row2.time_ns = 11000000000LL;
+    row2.truth_label = "truthB";
+    row2.classification_state = "full";
+    row2.feature_inputs = {
+        {"x", 2.5},
+        {"z", 99.0},  // Deliberately omit canonical "y"; writer should emit nan.
+    };
+    row2.predicted_class = "B";
+    row2.predicted_prob = 0.8;
+    row2.probabilities = {{"A", 0.2}, {"B", 0.8}};
+    rows.push_back(std::move(row2));
+
+    std::filesystem::path tmp = std::filesystem::temp_directory_path() / "nb_feature_id_csv_test.csv";
+    naive_bayes::pipeline::WritePredictionsCsv(tmp, rows, false);
+
+    std::ifstream input(tmp);
+    if (!input) {
+        throw std::runtime_error("Failed to open CSV output for feature/id columns test");
+    }
+
+    std::string header;
+    std::getline(input, header);
+    const std::string expected_header =
+        "time_ns,id,truth_label,classification_state,feature_x,feature_y,predicted_class,predicted_prob,prob_A,prob_B";
+    if (header != expected_header) {
+        throw std::runtime_error("Feature/id CSV header mismatch: " + header);
+    }
+
+    std::string line1;
+    std::getline(input, line1);
+    if (line1 != "10000000000,7,truthA,partial,1.250000,nan,A,0.900000,0.900000,0.100000") {
+        throw std::runtime_error("Unexpected first CSV data row: " + line1);
+    }
+
+    std::string line2;
+    std::getline(input, line2);
+    if (line2 != "11000000000,,truthB,full,2.500000,nan,B,0.800000,0.200000,0.800000") {
+        throw std::runtime_error("Unexpected second CSV data row: " + line2);
     }
 }
 
@@ -496,6 +557,13 @@ int RunTestSuite() {
         TestCsvGroupColumns();
     } catch (const std::exception& ex) {
         std::cerr << "!!! GROUP CSV OUTPUT TEST FAILED: " << ex.what() << "\n";
+        failures++;
+    }
+
+    try {
+        TestCsvFeatureInputsAndIdColumns();
+    } catch (const std::exception& ex) {
+        std::cerr << "!!! FEATURE/ID CSV OUTPUT TEST FAILED: " << ex.what() << "\n";
         failures++;
     }
 

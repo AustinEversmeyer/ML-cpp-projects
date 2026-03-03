@@ -2,6 +2,6 @@
     "files.associations": {
         "optional": "cpp"
     },
-    "python.defaultInterpreterPath": "${workspaceFolder}/tools/venv/bin/python",
+    "python.defaultInterpreterPath": "${workspaceFolder}/BayesClassifier/tools/venv/bin/python",
     "python.terminal.activateEnvironment": true
 }

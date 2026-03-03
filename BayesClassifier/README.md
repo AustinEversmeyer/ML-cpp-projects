@@ -131,8 +131,11 @@ Provide an ordered feature vector that matches the model’s feature order.
 
 The CSV output always includes:
 
-- `time_step` (or `index` when `output_use_index` is true)
+- `time_ns` (integer nanoseconds)
+- `id` (empty for CLI batch rows; populated by runtime pipeline rows when available)
 - `truth_label`
+- `classification_state` (`partial` or `full`)
+- `feature_<FeatureName>` for each model feature, in model feature order
 - `predicted_class`
 - `predicted_prob`
 - `prob_<ClassName>` for each class in the model
