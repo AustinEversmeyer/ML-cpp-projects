@@ -1,18 +1,45 @@
 #include "BayesRuntimeManager.h"
 
+#include <fstream>
 #include <stdexcept>
 #include <utility>
 
 namespace BayesPipeline {
 
+namespace {
+
+void ValidateModelConfigPath(const std::filesystem::path& model_config_path) {
+    if (model_config_path.empty()) {
+        throw std::runtime_error("model_config_path cannot be empty");
+    }
+    if (!std::filesystem::exists(model_config_path)) {
+        throw std::runtime_error("model_config_path does not exist: " + model_config_path.string());
+    }
+    std::ifstream model_stream(model_config_path);
+    if (!model_stream) {
+        throw std::runtime_error("model_config_path is not readable: " + model_config_path.string());
+    }
+}
+
+}  // namespace
+
+BayesRuntimeManager::BayesRuntimeManager(std::filesystem::path runtime_config_path,
+                                         std::filesystem::path model_config_path)
+    : BayesRuntimeManager(std::move(model_config_path), LoadBayesRuntimeConfig(runtime_config_path))
+{}
+
 BayesRuntimeManager::BayesRuntimeManager(std::filesystem::path model_config_path,
-                                         std::filesystem::path output_file,
-                                         size_t max_records,
-                                         int64_t time_tolerance_ns,
-                                         ClassificationTrigger trigger,
-                                         bool   allow_partial)
-    : manager_(std::move(model_config_path), max_records, time_tolerance_ns, trigger, allow_partial)
-    , output_file_(std::move(output_file))
+                                         BayesRuntimeConfig runtime_config)
+    : manager_([&model_config_path]() -> std::filesystem::path {
+                   ValidateModelConfigPath(model_config_path);
+                   return std::move(model_config_path);
+               }(),
+               runtime_config.max_records,
+               runtime_config.time_tolerance_ns,
+               runtime_config.evaluation_policy,
+               runtime_config.partial_policy,
+               runtime_config.partial_grace_window_ns)
+    , output_file_(std::move(runtime_config.output_file))
 {}
 
 BayesRuntimeManager::BayesRuntimeManager(std::filesystem::path model_config_path,
@@ -22,7 +49,10 @@ BayesRuntimeManager::BayesRuntimeManager(std::filesystem::path model_config_path
                                          EvaluationPolicy evaluation_policy,
                                          PartialPolicy partial_policy,
                                          int64_t partial_grace_window_ns)
-    : manager_(std::move(model_config_path),
+    : manager_([&model_config_path]() -> std::filesystem::path {
+                   ValidateModelConfigPath(model_config_path);
+                   return std::move(model_config_path);
+               }(),
                max_records,
                time_tolerance_ns,
                evaluation_policy,

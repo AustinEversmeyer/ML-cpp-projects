@@ -2,6 +2,9 @@
 skinparam monochrome true
 skinparam shadowing false
 skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam nodesep 70
+skinparam ranksep 90
 left to right direction
 
 title BayesPipeline Architecture
@@ -16,14 +19,28 @@ package "BayesPipeline" {
     + PublishFeature(data: FeatureData)
   }
 
+  class BayesRuntimeConfig {
+    + output_file: filesystem::path
+    + max_records: size_t
+    + time_tolerance_ns: int64_t
+    + evaluation_policy: EvaluationPolicy
+    + partial_policy: PartialPolicy
+    + partial_grace_window_ns: int64_t
+  }
+
+  class LoadBayesRuntimeConfig {
+    + operator()(file_path: filesystem::path): BayesRuntimeConfig
+  }
+
   class BayesRuntimeManager {
+    + BayesRuntimeManager(runtime_config_path: path, model_config_path: path)
+    + BayesRuntimeManager(model_config_path: path, output_file: path, ...)
     + Start()
     + Stop()
     + PublishFeature(data: FeatureData)
     + GetLatestResults()
     + GetOutputFile()
     - Run()
-    - WritePredictionsCsv()
   }
 
   class IngestQueue {
@@ -41,29 +58,41 @@ package "BayesPipeline" {
 
   class FeatureAlignmentStore {
     + RecordFeatureSample(data: FeatureData)
-    + BuildJoinedFeatureVectors()
-    + HaveAllFeaturesUpdated()
+    + BuildJoinedFeatureVectors(allow_partial: bool)
+    + ShouldClassify(trigger: ClassificationTrigger)
     + ResetUpdatedFeatures()
+    + PrimaryFeatureName()
   }
 
   class FeatureData {
     + id: int
-    + time: double
+    + time_ns: int64_t
     + feature_name: string
     + value: double
+    + truth_label: optional<string>
   }
 
   class JoinedFeatureVector {
     + id: int
-    + time: double
+    + anchor_time_ns: int64_t
     + feature_values: map<string,double>
+    + truth_label: optional<string>
+    + is_partial: bool
   }
 
   class ClassificationResult {
     + id: int
-    + time: double
+    + time_ns: int64_t
+    + truth_label: optional<string>
+    + classification_state: string
+    + feature_inputs: vector<pair<string,double>>
     + predicted_class: string
     + predicted_prob: double
+    + posteriors: vector<pair<string,double>>
+    + predicted_group: string
+    + predicted_group_prob: double
+    + group_posteriors: vector<pair<string,double>>
+    + is_partial: bool
   }
 }
 
@@ -72,17 +101,19 @@ package "BayesClassifier" {
   class WritePredictionsCsv
 }
 
-TestMessageProcessor1 --> IFeaturePublisher : PublishFeature(FeatureData)
-TestMessageProcessor2 --> IFeaturePublisher : PublishFeature(FeatureData)
+TestMessageProcessor1 --> IFeaturePublisher : publish feature
+TestMessageProcessor2 --> IFeaturePublisher : publish feature
 
 BayesRuntimeManager ..|> IFeaturePublisher
-BayesRuntimeManager --> IngestQueue : Push/Pop FeatureData
-BayesRuntimeManager --> BayesClassifierManager : RecordFeatureSample / ClassifyIfReady
-BayesRuntimeManager --> WritePredictionsCsv : persist outputs
+BayesRuntimeManager --> LoadBayesRuntimeConfig : load config
+BayesRuntimeManager --> BayesRuntimeConfig : use settings
+BayesRuntimeManager --> IngestQueue : enqueue/dequeue
+BayesRuntimeManager --> BayesClassifierManager : classify
+BayesRuntimeManager --> WritePredictionsCsv : write CSV
 
-BayesClassifierManager --> FeatureAlignmentStore : sample+join+readiness
-BayesClassifierManager --> NaiveBayes : PredictClass/PredictPosteriors
-BayesClassifierManager --> ClassificationResult
+BayesClassifierManager --> FeatureAlignmentStore : align features
+BayesClassifierManager --> NaiveBayes : infer probabilities
+BayesClassifierManager --> ClassificationResult : emit results
 
 FeatureAlignmentStore --> FeatureData
 FeatureAlignmentStore --> JoinedFeatureVector
@@ -90,6 +121,7 @@ FeatureAlignmentStore --> JoinedFeatureVector
 note right of BayesRuntimeManager
 Single worker thread drains IngestQueue.
 Each FeatureData event may trigger ClassifyIfReady().
+Model config path is provided explicitly at construction.
 end note
 
 note right of BayesClassifierManager

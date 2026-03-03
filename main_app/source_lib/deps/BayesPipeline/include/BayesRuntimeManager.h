@@ -1,6 +1,7 @@
 #pragma once
 
 #include "BayesClassifierManager.h"
+#include "BayesRuntimeConfig.h"
 #include "IngestQueue.h"
 #include "PipelinePublishers.h"
 #include "pipeline/pipeline_config.h"
@@ -13,13 +14,8 @@ namespace BayesPipeline {
 
 class BayesRuntimeManager : public IFeaturePublisher {
 public:
-    explicit BayesRuntimeManager(
-        std::filesystem::path model_config_path,
-        std::filesystem::path output_file    = "bayes_classifier_output.csv",
-        size_t max_records                   = FeatureAlignmentStore::kDefaultMaxRecords,
-        int64_t time_tolerance_ns            = FeatureAlignmentStore::kDefaultTimeToleranceNs,
-        ClassificationTrigger trigger        = ClassificationTrigger::kAllFeaturesUpdated,
-        bool   allow_partial                 = false);
+    explicit BayesRuntimeManager(std::filesystem::path runtime_config_path,
+                                 std::filesystem::path model_config_path);
 
     explicit BayesRuntimeManager(
         std::filesystem::path model_config_path,
@@ -40,6 +36,9 @@ public:
     const std::filesystem::path& GetOutputFile() const;
 
 private:
+    explicit BayesRuntimeManager(std::filesystem::path model_config_path,
+                                 BayesRuntimeConfig runtime_config);
+
     void Run();
 
     IngestQueue             queue_;

@@ -6,22 +6,10 @@
 #include <iostream>
 
 MainApp::MainApp() {
-    //   std::filesystem::path(GetConfigDir()) / "model/implementation.model.json"
-    const std::filesystem::path model_path = "deps/BayesPipeline/config/model/implementation.model.json";
-
-    // Trigger policy options:
-    //   kAllFeaturesUpdated    — classify only when every source has emitted (original behaviour)
-    //   kPrimaryFeatureUpdated — classify whenever the anchor (fastest) feature updates
-    //   kAnyFeatureUpdated     — classify on every feature arrival
-    // allow_partial=true passes NaN for features not yet available; the classifier skips them.
-    myBayesRuntimeManager = std::make_unique<BayesPipeline::BayesRuntimeManager>(
-        model_path,
-        "bayes_classifier_output.csv",
-        BayesPipeline::FeatureAlignmentStore::kDefaultMaxRecords,
-        BayesPipeline::FeatureAlignmentStore::kDefaultTimeToleranceNs,
-        BayesPipeline::EvaluationPolicy::kHybridDeadline,
-        BayesPipeline::PartialPolicy::kAllowAfterDeadline,
-        /*partial_grace_window_ns=*/200000000);
+    //   std::filesystem::path(GetConfigDir()) / "{path}/{file}.json"
+    const std::filesystem::path runtime_config_path = "deps/BayesPipeline/config/runtime/runtime.config.json";
+    const std::filesystem::path model_config_path = "deps/BayesPipeline/config/model/implementation.model.json";
+    myBayesRuntimeManager = std::make_unique<BayesPipeline::BayesRuntimeManager>(runtime_config_path, model_config_path);
 
     // Processors map incoming messages to sink-owned structs and publish them.
     proc1_ = std::make_unique<TestMessageProcessor1>(*myBayesRuntimeManager);

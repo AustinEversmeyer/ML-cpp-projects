@@ -1,4 +1,5 @@
 #include "BayesRuntimeManager.h"
+#include "BayesRuntimeConfig.h"
 #include "messaging/MessageSimulator.h"
 #include "messaging/TestMessageProcessor1.h"
 #include "messaging/TestMessageProcessor2.h"
@@ -87,7 +88,42 @@ std::filesystem::path OutputPath(const std::string& name) {
         std::filesystem::create_directories(dir);
         return dir / name;
     }
-    return UniqueTmpFile(name);
+    const std::filesystem::path default_dir = "cppsource/tests/testdata/outputs";
+    std::filesystem::create_directories(default_dir);
+    return default_dir / name;
+}
+
+std::filesystem::path ModelConfigPath() {
+    const std::filesystem::path path = "deps/BayesPipeline/config/model/implementation.model.json";
+    return std::filesystem::absolute(path).lexically_normal();
+}
+
+std::filesystem::path WriteRuntimeConfig(const std::filesystem::path& config_path,
+                                         const std::filesystem::path& output_path,
+                                         const std::string& eval_policy = "hybrid_deadline",
+                                         const std::string& partial_policy = "allow_after_deadline") {
+    std::ofstream out(config_path);
+    if (!out) {
+        throw std::runtime_error("Unable to write runtime config: " + config_path.string());
+    }
+    const std::filesystem::path resolved_output_path =
+        std::filesystem::absolute(output_path).lexically_normal();
+    out << "{\n";
+    out << "  \"output_file\": \"" << resolved_output_path.string() << "\",\n";
+    out << "  \"max_records\": 10,\n";
+    out << "  \"time_tolerance_ns\": 1000000000,\n";
+    out << "  \"evaluation_policy\": \"" << eval_policy << "\",\n";
+    out << "  \"partial_policy\": \"" << partial_policy << "\",\n";
+    out << "  \"partial_grace_window_ns\": 200000000\n";
+    out << "}\n";
+    return config_path;
+}
+
+BayesPipeline::BayesRuntimeManager MakeRuntimeFromConfig(const std::filesystem::path& output_path,
+                                                         const std::string& test_name) {
+    const std::filesystem::path config_path = UniqueTmpFile(test_name + ".runtime.json");
+    WriteRuntimeConfig(config_path, output_path);
+    return BayesPipeline::BayesRuntimeManager(config_path, ModelConfigPath());
 }
 
 void RunScenarioAndStop(MessageSimulator& simulator,
@@ -101,14 +137,7 @@ void TestFullImmediate() {
     std::cout << "[ScenarioTest] full classification emits immediately when all features align\n";
     const std::filesystem::path output = OutputPath("bayes_scenario_full_immediate.csv");
 
-    BayesPipeline::BayesRuntimeManager runtime(
-        "deps/BayesPipeline/config/model/implementation.model.json",
-        output,
-        BayesPipeline::FeatureAlignmentStore::kDefaultMaxRecords,
-        BayesPipeline::FeatureAlignmentStore::kDefaultTimeToleranceNs,
-        BayesPipeline::EvaluationPolicy::kHybridDeadline,
-        BayesPipeline::PartialPolicy::kAllowAfterDeadline,
-        200000000);
+    BayesPipeline::BayesRuntimeManager runtime = MakeRuntimeFromConfig(output, "full_immediate");
     TestMessageProcessor1 proc1(runtime);
     TestMessageProcessor2 proc2(runtime);
     MessageSimulator simulator(proc1, proc2, 7);
@@ -138,14 +167,7 @@ void TestGracePeriodPartial() {
     std::cout << "[ScenarioTest] grace window emits partial after deadline crossing event\n";
     const std::filesystem::path output = OutputPath("bayes_scenario_grace_partial.csv");
 
-    BayesPipeline::BayesRuntimeManager runtime(
-        "deps/BayesPipeline/config/model/implementation.model.json",
-        output,
-        BayesPipeline::FeatureAlignmentStore::kDefaultMaxRecords,
-        BayesPipeline::FeatureAlignmentStore::kDefaultTimeToleranceNs,
-        BayesPipeline::EvaluationPolicy::kHybridDeadline,
-        BayesPipeline::PartialPolicy::kAllowAfterDeadline,
-        200000000);
+    BayesPipeline::BayesRuntimeManager runtime = MakeRuntimeFromConfig(output, "grace_partial");
     TestMessageProcessor1 proc1(runtime);
     TestMessageProcessor2 proc2(runtime);
     MessageSimulator simulator(proc1, proc2, 11);
@@ -182,14 +204,7 @@ void TestScenarioCsvLoaderAndStepwise() {
         out << "2,0,length,0,3.0,TargetMedium\n";
     }
 
-    BayesPipeline::BayesRuntimeManager runtime(
-        "deps/BayesPipeline/config/model/implementation.model.json",
-        output,
-        BayesPipeline::FeatureAlignmentStore::kDefaultMaxRecords,
-        BayesPipeline::FeatureAlignmentStore::kDefaultTimeToleranceNs,
-        BayesPipeline::EvaluationPolicy::kHybridDeadline,
-        BayesPipeline::PartialPolicy::kAllowAfterDeadline,
-        200000000);
+    BayesPipeline::BayesRuntimeManager runtime = MakeRuntimeFromConfig(output, "csv_loader");
     TestMessageProcessor1 proc1(runtime);
     TestMessageProcessor2 proc2(runtime);
     MessageSimulator simulator(proc1, proc2, 13);
@@ -222,14 +237,7 @@ void TestCheckedInSampleScenario() {
     const std::filesystem::path scenario_csv = "cppsource/tests/testdata/sample_timing_scenario.csv";
     Assert(std::filesystem::exists(scenario_csv), "Missing checked-in sample scenario CSV");
 
-    BayesPipeline::BayesRuntimeManager runtime(
-        "deps/BayesPipeline/config/model/implementation.model.json",
-        output,
-        BayesPipeline::FeatureAlignmentStore::kDefaultMaxRecords,
-        BayesPipeline::FeatureAlignmentStore::kDefaultTimeToleranceNs,
-        BayesPipeline::EvaluationPolicy::kHybridDeadline,
-        BayesPipeline::PartialPolicy::kAllowAfterDeadline,
-        200000000);
+    BayesPipeline::BayesRuntimeManager runtime = MakeRuntimeFromConfig(output, "checked_in_sample");
     TestMessageProcessor1 proc1(runtime);
     TestMessageProcessor2 proc2(runtime);
     MessageSimulator simulator(proc1, proc2, 17);
@@ -246,6 +254,63 @@ void TestCheckedInSampleScenario() {
     Assert(dispatch_count == 10, "Expected 10 rows dispatched from sample scenario");
     const std::vector<CsvRow> rows = ReadClassificationRows(output);
     Assert(!rows.empty(), "Expected output rows from checked-in sample scenario");
+}
+
+void TestRuntimeConfigDefaultsAndEnums() {
+    std::cout << "[ScenarioTest] runtime config parser applies defaults and enum mapping\n";
+    const std::filesystem::path tmp_dir = std::filesystem::temp_directory_path() / "bayes_runtime_config";
+    std::filesystem::create_directories(tmp_dir);
+
+    const std::filesystem::path config_path = tmp_dir / "defaults.runtime.json";
+
+    {
+        std::ofstream out(config_path);
+        out << "{\n";
+        out << "  \"evaluation_policy\": \"primary_only\",\n";
+        out << "  \"partial_policy\": \"disallow\"\n";
+        out << "}\n";
+    }
+
+    const BayesPipeline::BayesRuntimeConfig config = BayesPipeline::LoadBayesRuntimeConfig(config_path);
+    Assert(config.evaluation_policy == BayesPipeline::EvaluationPolicy::kPrimaryOnly,
+           "Expected evaluation_policy primary_only");
+    Assert(config.partial_policy == BayesPipeline::PartialPolicy::kDisallow,
+           "Expected partial_policy disallow");
+    Assert(config.output_file == std::filesystem::path("bayes_classifier_output.csv"),
+           "Expected default output file");
+    Assert(config.max_records == BayesPipeline::FeatureAlignmentStore::kDefaultMaxRecords,
+           "Expected default max_records");
+}
+
+void TestRuntimeConfigBadModelPathFails() {
+    std::cout << "[ScenarioTest] runtime manager fails on nonexistent model path\n";
+    const std::filesystem::path config_path = UniqueTmpFile("bad_model_path.runtime.json");
+    const std::filesystem::path output_path = UniqueTmpFile("bad_model_path_output.csv");
+    const std::filesystem::path bad_model = UniqueTmpFile("does_not_exist.model.json");
+    WriteRuntimeConfig(config_path, output_path);
+    bool caught = false;
+    try {
+        BayesPipeline::BayesRuntimeManager runtime(config_path, bad_model);
+        (void)runtime;
+    } catch (const std::exception&) {
+        caught = true;
+    }
+    Assert(caught, "Expected nonexistent constructor model_config_path to throw");
+}
+
+void TestRuntimeConfigInvalidEnumFails() {
+    std::cout << "[ScenarioTest] runtime config parser fails on invalid enum values\n";
+    const std::filesystem::path config_path = UniqueTmpFile("bad_enum.runtime.json");
+    const std::filesystem::path output_path = UniqueTmpFile("bad_enum_output.csv");
+    WriteRuntimeConfig(config_path, output_path,
+                       "not_a_policy", "allow_after_deadline");
+    bool caught = false;
+    try {
+        (void)BayesPipeline::LoadBayesRuntimeConfig(config_path);
+    } catch (const std::exception&) {
+        caught = true;
+    }
+    Assert(caught, "Expected invalid evaluation_policy to throw");
 }
 
 }  // namespace
@@ -265,6 +330,9 @@ int main() {
     run("TestGracePeriodPartial", &TestGracePeriodPartial);
     run("TestScenarioCsvLoaderAndStepwise", &TestScenarioCsvLoaderAndStepwise);
     run("TestCheckedInSampleScenario", &TestCheckedInSampleScenario);
+    run("TestRuntimeConfigDefaultsAndEnums", &TestRuntimeConfigDefaultsAndEnums);
+    run("TestRuntimeConfigBadModelPathFails", &TestRuntimeConfigBadModelPathFails);
+    run("TestRuntimeConfigInvalidEnumFails", &TestRuntimeConfigInvalidEnumFails);
 
     if (failures == 0) {
         std::cout << "All scenario tests passed.\n";

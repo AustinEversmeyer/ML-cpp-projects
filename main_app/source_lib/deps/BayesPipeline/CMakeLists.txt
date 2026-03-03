@@ -21,6 +21,7 @@ endif()
 add_library(bayes_pipeline STATIC
   src/DataSink.cpp
   src/BayesClassifierManager.cpp
+  src/BayesRuntimeConfig.cpp
   src/IngestQueue.cpp
   src/BayesRuntimeManager.cpp
 )
