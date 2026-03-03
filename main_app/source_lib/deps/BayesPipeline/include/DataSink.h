@@ -53,7 +53,7 @@ struct JoinedFeatureVector {
 class FeatureAlignmentStore {
 public:
     static constexpr size_t kDefaultMaxRecords = 10;
-    static constexpr int64_t kDefaultTimeToleranceNs = 1000000000LL; // 1 second
+    static constexpr int64_t kDefaultTimeToleranceNs = 1000000000; // 1 second
 
     FeatureAlignmentStore(std::vector<std::string> model_feature_order,
                           size_t max_records = kDefaultMaxRecords,

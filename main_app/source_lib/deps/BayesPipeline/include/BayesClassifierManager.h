@@ -40,7 +40,7 @@ struct ClassificationResult {
 //
 class BayesClassifierManager {
 public:
-    static constexpr int64_t kDefaultPartialGraceWindowNs = 200000000LL;
+    static constexpr int64_t kDefaultPartialGraceWindowNs = 200000000;
 
     BayesClassifierManager(std::filesystem::path model_config_path,
                            size_t max_records         = FeatureAlignmentStore::kDefaultMaxRecords,

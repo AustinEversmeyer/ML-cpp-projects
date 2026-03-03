@@ -21,7 +21,7 @@ MainApp::MainApp() {
         BayesPipeline::FeatureAlignmentStore::kDefaultTimeToleranceNs,
         BayesPipeline::EvaluationPolicy::kHybridDeadline,
         BayesPipeline::PartialPolicy::kAllowAfterDeadline,
-        /*partial_grace_window_ns=*/200000000LL);
+        /*partial_grace_window_ns=*/200000000);
 
     // Processors map incoming messages to sink-owned structs and publish them.
     proc1_ = std::make_unique<TestMessageProcessor1>(*myBayesRuntimeManager);

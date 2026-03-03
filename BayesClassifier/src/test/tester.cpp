@@ -1,6 +1,7 @@
 #include "test/tester.h"
 
 #include <cmath>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <iostream>

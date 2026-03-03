@@ -3,6 +3,8 @@
 #include "messaging/TestMessageProcessor1.h"
 #include "messaging/TestMessageProcessor2.h"
 
+#include <cstdint>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -11,7 +13,6 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <cstdlib>
 
 namespace {
 
@@ -107,7 +108,7 @@ void TestFullImmediate() {
         BayesPipeline::FeatureAlignmentStore::kDefaultTimeToleranceNs,
         BayesPipeline::EvaluationPolicy::kHybridDeadline,
         BayesPipeline::PartialPolicy::kAllowAfterDeadline,
-        200000000LL);
+        200000000);
     TestMessageProcessor1 proc1(runtime);
     TestMessageProcessor2 proc2(runtime);
     MessageSimulator simulator(proc1, proc2, 7);
@@ -144,7 +145,7 @@ void TestGracePeriodPartial() {
         BayesPipeline::FeatureAlignmentStore::kDefaultTimeToleranceNs,
         BayesPipeline::EvaluationPolicy::kHybridDeadline,
         BayesPipeline::PartialPolicy::kAllowAfterDeadline,
-        200000000LL);
+        200000000);
     TestMessageProcessor1 proc1(runtime);
     TestMessageProcessor2 proc2(runtime);
     MessageSimulator simulator(proc1, proc2, 11);
@@ -188,7 +189,7 @@ void TestScenarioCsvLoaderAndStepwise() {
         BayesPipeline::FeatureAlignmentStore::kDefaultTimeToleranceNs,
         BayesPipeline::EvaluationPolicy::kHybridDeadline,
         BayesPipeline::PartialPolicy::kAllowAfterDeadline,
-        200000000LL);
+        200000000);
     TestMessageProcessor1 proc1(runtime);
     TestMessageProcessor2 proc2(runtime);
     MessageSimulator simulator(proc1, proc2, 13);
@@ -228,7 +229,7 @@ void TestCheckedInSampleScenario() {
         BayesPipeline::FeatureAlignmentStore::kDefaultTimeToleranceNs,
         BayesPipeline::EvaluationPolicy::kHybridDeadline,
         BayesPipeline::PartialPolicy::kAllowAfterDeadline,
-        200000000LL);
+        200000000);
     TestMessageProcessor1 proc1(runtime);
     TestMessageProcessor2 proc2(runtime);
     MessageSimulator simulator(proc1, proc2, 17);
