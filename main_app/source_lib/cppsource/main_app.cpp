@@ -42,7 +42,7 @@ void MainApp::Run() {
     std::cout << "\n=== Classification Results ===\n";
     for (const auto& r : results) {
         std::cout << "  ID=" << r.id
-                  << "  t_ns=" << r.time_ns
+                  << "  t=" << r.time
                   << "  state=" << r.classification_state
                   << "  class=" << r.predicted_class
                   << "  prob=" << r.predicted_prob

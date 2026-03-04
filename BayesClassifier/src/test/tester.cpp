@@ -424,7 +424,7 @@ void TestCsvGroupColumns() {
     std::getline(input, header);
 
     const std::string expected_header =
-        "time_ns,id,truth_label,classification_state,feature_x,predicted_class,predicted_prob,prob_A,prob_B,"
+        "time,id,truth_label,classification_state,feature_x,predicted_class,predicted_prob,prob_A,prob_B,"
         "predicted_group,predicted_group_prob,group_prob_GroupA,group_prob_GroupB";
     if (header != expected_header) {
         throw std::runtime_error("Grouped CSV header mismatch: " + header);
@@ -437,7 +437,7 @@ void TestCsvFeatureInputsAndIdColumns() {
     std::vector<naive_bayes::pipeline::BatchPredictionRow> rows;
 
     naive_bayes::pipeline::BatchPredictionRow row1;
-    row1.time_ns = 10000000000LL;
+    row1.time = 10000000000LL;
     row1.id = 7;
     row1.truth_label = "truthA";
     row1.classification_state = "partial";
@@ -451,7 +451,7 @@ void TestCsvFeatureInputsAndIdColumns() {
     rows.push_back(std::move(row1));
 
     naive_bayes::pipeline::BatchPredictionRow row2;
-    row2.time_ns = 11000000000LL;
+    row2.time = 11000000000LL;
     row2.truth_label = "truthB";
     row2.classification_state = "full";
     row2.feature_inputs = {
@@ -474,7 +474,7 @@ void TestCsvFeatureInputsAndIdColumns() {
     std::string header;
     std::getline(input, header);
     const std::string expected_header =
-        "time_ns,id,truth_label,classification_state,feature_x,feature_y,predicted_class,predicted_prob,prob_A,prob_B";
+        "time,id,truth_label,classification_state,feature_x,feature_y,predicted_class,predicted_prob,prob_A,prob_B";
     if (header != expected_header) {
         throw std::runtime_error("Feature/id CSV header mismatch: " + header);
     }

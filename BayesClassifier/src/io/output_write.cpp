@@ -47,7 +47,7 @@ void WritePredictionsCsv(const std::filesystem::path& file_path,
     canonical_feature_names.push_back(entry.first);
   }
 
-  output_stream << "time_ns,id,truth_label,classification_state";
+  output_stream << "time,id,truth_label,classification_state";
   for (const std::string& feature_name : canonical_feature_names) {
     output_stream << ",feature_" << feature_name;
   }
@@ -72,7 +72,7 @@ void WritePredictionsCsv(const std::filesystem::path& file_path,
           std::to_string(row.feature_inputs.size()));
     }
 
-    output_stream << row.time_ns << ',';
+    output_stream << row.time << ',';
     if (row.id.has_value()) {
       output_stream << *row.id;
     }

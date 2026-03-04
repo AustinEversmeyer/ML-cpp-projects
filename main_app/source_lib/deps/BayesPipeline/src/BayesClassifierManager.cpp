@@ -47,38 +47,38 @@ EvaluationPolicy LegacyToEvaluationPolicy(ClassificationTrigger trigger) {
 
 BayesClassifierManager::BayesClassifierManager(std::filesystem::path model_config_path,
                                                size_t max_records,
-                                               int64_t time_tolerance_ns,
+                                               int64_t time_tolerance,
                                                ClassificationTrigger trigger,
                                                bool allow_partial)
     : BayesClassifierManager(std::move(model_config_path),
                              max_records,
-                             time_tolerance_ns,
+                             time_tolerance,
                              LegacyToEvaluationPolicy(trigger),
                              LegacyToPartialPolicy(allow_partial),
-                             kDefaultPartialGraceWindowNs) {
+                             kDefaultPartialGraceWindow) {
     std::cerr << "Warning: ClassificationTrigger-based constructor is deprecated; "
                  "prefer EvaluationPolicy/PartialPolicy constructor.\n";
 }
 
 BayesClassifierManager::BayesClassifierManager(std::filesystem::path model_config_path,
                                                size_t max_records,
-                                               int64_t time_tolerance_ns,
+                                               int64_t time_tolerance,
                                                EvaluationPolicy evaluation_policy,
                                                PartialPolicy partial_policy,
-                                               int64_t partial_grace_window_ns)
+                                               int64_t partial_grace_window)
     : evaluation_policy_(evaluation_policy)
     , partial_policy_(partial_policy)
-    , partial_grace_window_ns_(partial_grace_window_ns) {
+    , partial_grace_window_(partial_grace_window) {
     naive_bayes::NaiveBayes loaded = naive_bayes::io::LoadModelConfiguration(model_config_path);
     const std::vector<std::string> feature_names = loaded.FeatureNames();
     bayesClassifier_ = std::make_unique<naive_bayes::NaiveBayes>(std::move(loaded));
 
-    alignment_store_ = std::make_unique<FeatureAlignmentStore>(feature_names, max_records, time_tolerance_ns);
+    alignment_store_ = std::make_unique<FeatureAlignmentStore>(feature_names, max_records, time_tolerance);
 }
 
 void BayesClassifierManager::RecordFeatureSample(const FeatureData& data) {
     last_event_feature_ = data.feature_name;
-    last_event_time_ns_ = data.time_ns;
+    last_event_time_ = data.time;
     alignment_store_->RecordFeatureSample(data);
 }
 
@@ -104,7 +104,7 @@ std::vector<ClassificationResult> BayesClassifierManager::Classify() {
         alignment_store_->BuildJoinedFeatureVectors(include_partial_candidates);
 
     for (const JoinedFeatureVector& rec : joined) {
-        const std::pair<int, int64_t> key = std::make_pair(rec.id, rec.anchor_time_ns);
+        const std::pair<int, int64_t> key = std::make_pair(rec.id, rec.anchor_time);
         EmissionState& state = emission_state_by_key_[key];
 
         bool emit_row = false;
@@ -128,7 +128,7 @@ std::vector<ClassificationResult> BayesClassifierManager::Classify() {
                         break;
                     case PartialPolicy::kAllowAfterDeadline:
                         allow_partial_now =
-                            last_event_time_ns_ >= (rec.anchor_time_ns + partial_grace_window_ns_);
+                            last_event_time_ >= (rec.anchor_time + partial_grace_window_);
                         break;
                 }
                 if (allow_partial_now) {
@@ -163,7 +163,7 @@ std::vector<ClassificationResult> BayesClassifierManager::Classify() {
 
         ClassificationResult result;
         result.id = rec.id;
-        result.time_ns = rec.anchor_time_ns;
+        result.time = rec.anchor_time;
         result.truth_label = rec.truth_label;
         result.classification_state = classification_state;
         result.feature_inputs = naive_bayes::pipeline::BuildFeatureInputs(feature_names, features);

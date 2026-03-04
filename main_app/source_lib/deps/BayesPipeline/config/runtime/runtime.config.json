@@ -1,8 +1,8 @@
 {
   "output_file": "bayes_classifier_output.csv",
   "max_records": 10,
-  "time_tolerance_ns": 1000000000,
+  "time_tolerance": 1000000000,
   "evaluation_policy": "hybrid_deadline",
   "partial_policy": "allow_after_deadline",
-  "partial_grace_window_ns": 200000000
+  "partial_grace_window": 200000000
 }

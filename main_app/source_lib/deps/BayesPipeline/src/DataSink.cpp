@@ -9,10 +9,10 @@ namespace BayesPipeline {
 
 FeatureAlignmentStore::FeatureAlignmentStore(std::vector<std::string> model_feature_order,
                                              size_t max_records,
-                                             int64_t time_tolerance_ns)
+                                             int64_t time_tolerance)
     : model_feature_order_(std::move(model_feature_order))
     , max_records_(max_records)
-    , time_tolerance_ns_(time_tolerance_ns)
+    , time_tolerance_(time_tolerance)
 {
     if (model_feature_order_.empty()) {
         throw std::invalid_argument("FeatureAlignmentStore requires at least one feature name");
@@ -23,7 +23,7 @@ void FeatureAlignmentStore::RecordFeatureSample(const FeatureData& data) {
     std::map<std::string, std::deque<FeatureEntry>>& id_features =
         samples_by_id_and_feature_[data.id];
     std::deque<FeatureEntry>& buf = id_features[data.feature_name];
-    buf.push_back({data.time_ns, data.value});
+    buf.push_back({data.time, data.value});
     Trim(buf);
     if (data.truth_label.has_value()) {
         truth_label_by_id_[data.id] = data.truth_label.value();
@@ -78,14 +78,14 @@ std::vector<JoinedFeatureVector> FeatureAlignmentStore::BuildJoinedFeatureVector
                  entry_it != entries.end();
                  ++entry_it) {
                 const FeatureEntry& e = *entry_it;
-                const int64_t delta_ns = std::llabs(e.time_ns - anchor_entry.time_ns);
-                if (delta_ns < best_delta) {
-                    best_delta = delta_ns;
+                const int64_t delta = std::llabs(e.time - anchor_entry.time);
+                if (delta < best_delta) {
+                    best_delta = delta;
                     best_entry = &e;
                 }
             }
 
-            if (best_entry == nullptr || best_delta > time_tolerance_ns_) {
+            if (best_entry == nullptr || best_delta > time_tolerance_) {
                 if (allow_partial) {
                     matched_values[feature_name] = std::numeric_limits<double>::quiet_NaN();
                     any_feature_missing = true;
@@ -108,7 +108,7 @@ std::vector<JoinedFeatureVector> FeatureAlignmentStore::BuildJoinedFeatureVector
 
             results.push_back({
                 id,
-                anchor_entry.time_ns,
+                anchor_entry.time,
                 std::move(matched_values),
                 std::move(truth_label),
                 any_feature_missing

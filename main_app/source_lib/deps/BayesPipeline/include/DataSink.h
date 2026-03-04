@@ -30,13 +30,13 @@ enum class PartialPolicy {
 };
 
 struct FeatureEntry {
-    int64_t time_ns;
+    int64_t time;
     double value;
 };
 
 struct FeatureData {
     int id;
-    int64_t time_ns;
+    int64_t time;
     std::string feature_name;
     double value;
     std::optional<std::string> truth_label;
@@ -44,7 +44,7 @@ struct FeatureData {
 
 struct JoinedFeatureVector {
     int    id;
-    int64_t anchor_time_ns;
+    int64_t anchor_time;
     std::map<std::string, double> feature_values; // missing features stored as NaN when allow_partial
     std::optional<std::string> truth_label;
     bool is_partial = false; // true if any feature was missing / out of tolerance
@@ -53,11 +53,11 @@ struct JoinedFeatureVector {
 class FeatureAlignmentStore {
 public:
     static constexpr size_t kDefaultMaxRecords = 10;
-    static constexpr int64_t kDefaultTimeToleranceNs = 1000000000; // 1 second
+    static constexpr int64_t kDefaultTimeTolerance = 1000000000; // 1 second in nanoseconds (scale to your time unit)
 
     FeatureAlignmentStore(std::vector<std::string> model_feature_order,
                           size_t max_records = kDefaultMaxRecords,
-                          int64_t time_tolerance_ns = kDefaultTimeToleranceNs);
+                          int64_t time_tolerance = kDefaultTimeTolerance);
 
     void RecordFeatureSample(const FeatureData& data);
 
@@ -75,7 +75,7 @@ public:
 private:
     std::vector<std::string> model_feature_order_;
     size_t max_records_;
-    int64_t time_tolerance_ns_;
+    int64_t time_tolerance_;
 
     std::map<int, std::map<std::string, std::deque<FeatureEntry>>> samples_by_id_and_feature_;
     std::map<int, std::string> truth_label_by_id_;

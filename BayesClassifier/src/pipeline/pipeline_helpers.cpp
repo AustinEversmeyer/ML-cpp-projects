@@ -88,7 +88,7 @@ std::vector<BatchPredictionRow> RunInference(const NaiveBayes& clf,
     DetailedPrediction result = RunDetailedPrediction(clf, observation.features);
 
     BatchPredictionRow row;
-    row.time_ns = static_cast<int64_t>(std::llround(observation.timestep * kNsPerSecond));
+    row.time = static_cast<int64_t>(std::llround(observation.timestep * kNsPerSecond));
     row.truth_label = observation.truth_label;
     row.predicted_class = std::move(result.predicted_class);
     row.predicted_prob = result.predicted_prob;
@@ -153,7 +153,7 @@ BatchPredictionRow PredictFromJsonObject(const NaiveBayes& clf,
   const std::vector<std::string>& feature_names = clf.FeatureNames();
 
   BatchPredictionRow row;
-  row.time_ns = static_cast<int64_t>(std::llround(inputs.timestep * kNsPerSecond));
+  row.time = static_cast<int64_t>(std::llround(inputs.timestep * kNsPerSecond));
   row.truth_label = inputs.truth_label;
   row.feature_inputs = BuildFeatureInputs(feature_names, inputs.features);
   row.predicted_class = std::move(result.predicted_class);

@@ -251,7 +251,7 @@ void MessageSimulator::LoadScenarioFromCsv(const std::filesystem::path& csv_path
 
     const std::size_t id_idx = find_index("id");
     const std::size_t source_idx = find_index("source");
-    const std::size_t time_ns_idx = find_index("time_ns");
+    const std::size_t time_idx = find_index("time");
     const std::size_t value_idx = find_index("value");
     std::size_t truth_idx = header.size();
     for (std::size_t i = 0; i < header.size(); ++i) {
@@ -277,7 +277,7 @@ void MessageSimulator::LoadScenarioFromCsv(const std::filesystem::path& csv_path
 
         const int id = std::stoi(fields[id_idx]);
         const std::string source = fields[source_idx];
-        const int64_t time_ns = std::stoll(fields[time_ns_idx]);
+        const int64_t time_val = std::stoll(fields[time_idx]);
         const double value = std::stod(fields[value_idx]);
         std::optional<std::string> truth_label = std::nullopt;
         if (truth_idx < fields.size() && !fields[truth_idx].empty()) {
@@ -285,9 +285,9 @@ void MessageSimulator::LoadScenarioFromCsv(const std::filesystem::path& csv_path
         }
 
         if (source == "rcs") {
-            Enqueue(Proc1Message{id, ToSeconds(time_ns), value, truth_label});
+            Enqueue(Proc1Message{id, ToSeconds(time_val), value, truth_label});
         } else if (source == "length") {
-            Enqueue(Proc2Message{id, ToSeconds(time_ns), value, truth_label});
+            Enqueue(Proc2Message{id, ToSeconds(time_val), value, truth_label});
         } else {
             throw std::runtime_error("Scenario CSV line " + std::to_string(line_no) +
                                      " has unknown source '" + source + "'");

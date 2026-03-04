@@ -132,10 +132,10 @@ BayesRuntimeConfig LoadBayesRuntimeConfig(const std::filesystem::path& file_path
     }
 
     config.max_records = ParseSizeField(root, "max_records", config.max_records);
-    config.time_tolerance_ns =
-        ParseNonNegativeInt64Field(root, "time_tolerance_ns", config.time_tolerance_ns);
-    config.partial_grace_window_ns =
-        ParseNonNegativeInt64Field(root, "partial_grace_window_ns", config.partial_grace_window_ns);
+    config.time_tolerance =
+        ParseNonNegativeInt64Field(root, "time_tolerance", config.time_tolerance);
+    config.partial_grace_window =
+        ParseNonNegativeInt64Field(root, "partial_grace_window", config.partial_grace_window);
 
     if (root.contains("evaluation_policy")) {
         config.evaluation_policy = ParseEvaluationPolicy(

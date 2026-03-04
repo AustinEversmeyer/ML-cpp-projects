@@ -35,7 +35,7 @@ struct Observation {
 };
 
 struct BatchPredictionRow {
-  int64_t time_ns{};
+  int64_t time{};
   std::optional<int> id;
   std::string truth_label;
   std::string classification_state = "full";

@@ -21,10 +21,10 @@ public:
         std::filesystem::path model_config_path,
         std::filesystem::path output_file,
         size_t max_records,
-        int64_t time_tolerance_ns,
+        int64_t time_tolerance,
         EvaluationPolicy evaluation_policy,
         PartialPolicy partial_policy,
-        int64_t partial_grace_window_ns = BayesClassifierManager::kDefaultPartialGraceWindowNs);
+        int64_t partial_grace_window = BayesClassifierManager::kDefaultPartialGraceWindow);
     ~BayesRuntimeManager();
 
     void Start();

@@ -12,10 +12,10 @@ namespace BayesPipeline {
 struct BayesRuntimeConfig {
     std::filesystem::path output_file = "bayes_classifier_output.csv";
     size_t max_records = FeatureAlignmentStore::kDefaultMaxRecords;
-    int64_t time_tolerance_ns = FeatureAlignmentStore::kDefaultTimeToleranceNs;
+    int64_t time_tolerance = FeatureAlignmentStore::kDefaultTimeTolerance;
     EvaluationPolicy evaluation_policy = EvaluationPolicy::kHybridDeadline;
     PartialPolicy partial_policy = PartialPolicy::kAllowAfterDeadline;
-    int64_t partial_grace_window_ns = BayesClassifierManager::kDefaultPartialGraceWindowNs;
+    int64_t partial_grace_window = BayesClassifierManager::kDefaultPartialGraceWindow;
 };
 
 [[nodiscard]] BayesRuntimeConfig LoadBayesRuntimeConfig(const std::filesystem::path& file_path);

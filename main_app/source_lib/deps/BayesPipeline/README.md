@@ -8,7 +8,7 @@ This library is built as a static library (`libbayes_pipeline.a`) and used by `m
 
 1. Receives `FeatureData` events through `IFeaturePublisher::PublishFeature`.
 2. Queues events in `IngestQueue` for a worker thread.
-3. Aligns model features by `id` and anchor timestamp (`time_ns`) in `FeatureAlignmentStore`.
+3. Aligns model features by `id` and anchor timestamp (`time`) in `FeatureAlignmentStore`.
 4. Runs classification in `BayesClassifierManager` using `naive_bayes::NaiveBayes`.
 5. Buffers runtime rows and writes CSV at `BayesRuntimeManager::Stop()`.
 
@@ -19,7 +19,7 @@ This library is built as a static library (`libbayes_pipeline.a`) and used by `m
   - Owns queue worker, classifier manager, and output row buffer.
   - Public construction modes:
     - `BayesRuntimeManager(runtime_config_path, model_config_path)`
-    - `BayesRuntimeManager(model_config_path, output_file, max_records, time_tolerance_ns, evaluation_policy, partial_policy, partial_grace_window_ns)`
+    - `BayesRuntimeManager(model_config_path, output_file, max_records, time_tolerance, evaluation_policy, partial_policy, partial_grace_window)`
 - `BayesRuntimeConfig`
   - Runtime knobs loaded from JSON (excluding model path by design).
 - `IngestQueue`
@@ -30,12 +30,16 @@ This library is built as a static library (`libbayes_pipeline.a`) and used by `m
   - Classification trigger/evaluation policy logic and duplicate-suppression state machine.
   - Uses shared BayesClassifier helpers (`RunDetailedPrediction`, `BuildFeatureInputs`) so runtime and CLI emit consistent probability/group outputs.
 
+## Time Unit
+
+All time fields (`FeatureData.time`, `time_tolerance`, `partial_grace_window`) are opaque `int64_t` ticks. The pipeline performs only relational comparisons (`delta > tolerance`, `last_event_time >= anchor_time + grace_window`), so any consistent integer time unit works. The default values assume nanoseconds — scale them to match your unit.
+
 ## Data Model
 
 ### Input event
 - `FeatureData`
   - `id: int`
-  - `time_ns: int64_t`
+  - `time: int64_t`
   - `feature_name: std::string`
   - `value: double`
   - `truth_label: std::optional<std::string>`
@@ -43,14 +47,14 @@ This library is built as a static library (`libbayes_pipeline.a`) and used by `m
 ### Joined candidate
 - `JoinedFeatureVector`
   - `id`
-  - `anchor_time_ns`
+  - `anchor_time`
   - `feature_values` (missing features represented as `NaN` when partial is enabled)
   - `truth_label`
   - `is_partial`
 
 ### Classification output (in-memory)
 - `ClassificationResult`
-  - key fields: `id`, `time_ns`, `truth_label`, `classification_state`
+  - key fields: `id`, `time`, `truth_label`, `classification_state`
   - features: `feature_inputs`
   - model outputs: `predicted_class`, `predicted_prob`, `posteriors`
   - group outputs (if class groups configured): `predicted_group`, `predicted_group_prob`, `group_posteriors`
@@ -63,18 +67,18 @@ This library is built as a static library (`libbayes_pipeline.a`) and used by `m
 Current schema:
 - `output_file` (string, optional)
 - `max_records` (positive integer, optional)
-- `time_tolerance_ns` (non-negative integer, optional)
+- `time_tolerance` (non-negative integer, optional)
 - `evaluation_policy` (string enum, optional)
 - `partial_policy` (string enum, optional)
-- `partial_grace_window_ns` (non-negative integer, optional)
+- `partial_grace_window` (non-negative integer, optional)
 
 Defaults:
 - `output_file = "bayes_classifier_output.csv"`
 - `max_records = 10`
-- `time_tolerance_ns = 1000000000`
+- `time_tolerance = 1000000000`
 - `evaluation_policy = "hybrid_deadline"`
 - `partial_policy = "allow_after_deadline"`
-- `partial_grace_window_ns = 200000000`
+- `partial_grace_window = 200000000`
 
 Path behavior:
 - Relative `output_file` paths are resolved relative to the runtime config file directory.
@@ -108,7 +112,7 @@ Validation:
 - `kDisallow`
   - Never emit partial rows.
 - `kAllowAfterDeadline`
-  - Emit partial rows only when `last_event_time_ns >= anchor_time_ns + partial_grace_window_ns`.
+  - Emit partial rows only when `last_event_time >= anchor_time + partial_grace_window`.
 - `kAlwaysAllow`
   - Emit partial rows as soon as a partial candidate exists.
 
@@ -119,7 +123,7 @@ Validation:
 
 ## Emission and Duplicate Suppression
 
-Classification is keyed by `(id, anchor_time_ns)`.
+Classification is keyed by `(id, anchor_time)`.
 
 Current behavior per key:
 - At most one emission state is written.
@@ -133,7 +137,7 @@ CSV writing is delegated to `naive_bayes::pipeline::WritePredictionsCsv`.
 `BayesRuntimeManager` accumulates rows while running and writes once at `Stop()`.
 
 Columns include:
-- `time_ns`, `id`, `truth_label`, `classification_state`
+- `time`, `id`, `truth_label`, `classification_state`
 - `feature_<name>` columns
 - `predicted_class`, `predicted_prob`, `prob_*`
 - optional group columns if model groups are configured

@@ -35,29 +35,29 @@ BayesRuntimeManager::BayesRuntimeManager(std::filesystem::path model_config_path
                    return std::move(model_config_path);
                }(),
                runtime_config.max_records,
-               runtime_config.time_tolerance_ns,
+               runtime_config.time_tolerance,
                runtime_config.evaluation_policy,
                runtime_config.partial_policy,
-               runtime_config.partial_grace_window_ns)
+               runtime_config.partial_grace_window)
     , output_file_(std::move(runtime_config.output_file))
 {}
 
 BayesRuntimeManager::BayesRuntimeManager(std::filesystem::path model_config_path,
                                          std::filesystem::path output_file,
                                          size_t max_records,
-                                         int64_t time_tolerance_ns,
+                                         int64_t time_tolerance,
                                          EvaluationPolicy evaluation_policy,
                                          PartialPolicy partial_policy,
-                                         int64_t partial_grace_window_ns)
+                                         int64_t partial_grace_window)
     : manager_([&model_config_path]() -> std::filesystem::path {
                    ValidateModelConfigPath(model_config_path);
                    return std::move(model_config_path);
                }(),
                max_records,
-               time_tolerance_ns,
+               time_tolerance,
                evaluation_policy,
                partial_policy,
-               partial_grace_window_ns)
+               partial_grace_window)
     , output_file_(std::move(output_file))
 {}
 
@@ -110,7 +110,7 @@ void BayesRuntimeManager::Run() {
         if (manager_.ClassifyIfReady()) {
             for (const ClassificationResult& r : manager_.GetLatestResults()) {
                 naive_bayes::pipeline::BatchPredictionRow row;
-                row.time_ns = r.time_ns;
+                row.time = r.time;
                 row.id = r.id;
                 if (r.truth_label.has_value() && !r.truth_label.value().empty()) {
                     row.truth_label = r.truth_label.value();

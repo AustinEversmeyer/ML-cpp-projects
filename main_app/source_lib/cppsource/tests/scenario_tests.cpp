@@ -18,7 +18,7 @@
 namespace {
 
 struct CsvRow {
-    int64_t time_ns = 0;
+    int64_t time = 0;
     int id = -1;
     std::string classification_state;
 };
@@ -49,7 +49,7 @@ std::vector<CsvRow> ReadClassificationRows(const std::filesystem::path& csv_path
         index[header[i]] = i;
     }
 
-    for (const char* required : {"time_ns", "id", "classification_state"}) {
+    for (const char* required : {"time", "id", "classification_state"}) {
         if (index.find(required) == index.end()) {
             throw std::runtime_error(std::string("Missing required CSV column: ") + required);
         }
@@ -63,7 +63,7 @@ std::vector<CsvRow> ReadClassificationRows(const std::filesystem::path& csv_path
         }
         const std::vector<std::string> fields = SplitCsv(line);
         CsvRow row;
-        row.time_ns = std::stoll(fields[index["time_ns"]]);
+        row.time = std::stoll(fields[index["time"]]);
         row.id = std::stoi(fields[index["id"]]);
         row.classification_state = fields[index["classification_state"]];
         rows.push_back(std::move(row));
@@ -111,10 +111,10 @@ std::filesystem::path WriteRuntimeConfig(const std::filesystem::path& config_pat
     out << "{\n";
     out << "  \"output_file\": \"" << resolved_output_path.string() << "\",\n";
     out << "  \"max_records\": 10,\n";
-    out << "  \"time_tolerance_ns\": 1000000000,\n";
+    out << "  \"time_tolerance\": 1000000000,\n";
     out << "  \"evaluation_policy\": \"" << eval_policy << "\",\n";
     out << "  \"partial_policy\": \"" << partial_policy << "\",\n";
-    out << "  \"partial_grace_window_ns\": 200000000\n";
+    out << "  \"partial_grace_window\": 200000000\n";
     out << "}\n";
     return config_path;
 }
@@ -152,14 +152,14 @@ void TestFullImmediate() {
     bool found_full = false;
     bool found_partial = false;
     for (const CsvRow& row : rows) {
-        if (row.id == 0 && row.time_ns == 0 && row.classification_state == "full") {
+        if (row.id == 0 && row.time == 0 && row.classification_state == "full") {
             found_full = true;
         }
-        if (row.id == 0 && row.time_ns == 0 && row.classification_state == "partial") {
+        if (row.id == 0 && row.time == 0 && row.classification_state == "partial") {
             found_partial = true;
         }
     }
-    Assert(found_full, "Expected full row for id=0,time_ns=0");
+    Assert(found_full, "Expected full row for id=0,time=0");
     Assert(!found_partial, "Did not expect partial row when full alignment is available");
 }
 
@@ -184,12 +184,12 @@ void TestGracePeriodPartial() {
 
     int partial_count_for_key = 0;
     for (const CsvRow& row : rows) {
-        if (row.id == 0 && row.time_ns == 0 && row.classification_state == "partial") {
+        if (row.id == 0 && row.time == 0 && row.classification_state == "partial") {
             ++partial_count_for_key;
         }
     }
     Assert(partial_count_for_key == 1,
-           "Expected exactly one partial emission for (id=0,time_ns=0)");
+           "Expected exactly one partial emission for (id=0,time=0)");
 }
 
 void TestScenarioCsvLoaderAndStepwise() {
@@ -199,7 +199,7 @@ void TestScenarioCsvLoaderAndStepwise() {
 
     {
         std::ofstream out(scenario_csv);
-        out << "seq,id,source,time_ns,value,truth_label\n";
+        out << "seq,id,source,time,value,truth_label\n";
         out << "1,0,rcs,0,5.0,TargetMedium\n";
         out << "2,0,length,0,3.0,TargetMedium\n";
     }
@@ -223,7 +223,7 @@ void TestScenarioCsvLoaderAndStepwise() {
     const std::vector<CsvRow> rows = ReadClassificationRows(output);
     bool found_full = false;
     for (const CsvRow& row : rows) {
-        if (row.id == 0 && row.time_ns == 0 && row.classification_state == "full") {
+        if (row.id == 0 && row.time == 0 && row.classification_state == "full") {
             found_full = true;
             break;
         }

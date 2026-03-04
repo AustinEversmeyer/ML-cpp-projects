@@ -6,12 +6,12 @@ This folder contains deterministic input streams for `MessageSimulator::LoadScen
 
 CSV header:
 
-`seq,id,source,time_ns,value,truth_label`
+`seq,id,source,time,value,truth_label`
 
 - `seq`: ordering key in the file (kept for readability; dispatch order is file order unless sorted in code).
 - `id`: track/object id used by Bayes runtime.
 - `source`: `rcs` or `length`.
-- `time_ns`: event timestamp in nanoseconds.
+- `time`: event timestamp as an opaque integer tick value (unit is caller-defined; current samples use nanoseconds).
 - `value`: numeric feature value.
 - `truth_label`: optional truth class label.
 

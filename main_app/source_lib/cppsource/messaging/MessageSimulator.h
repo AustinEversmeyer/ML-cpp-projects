@@ -106,7 +106,7 @@ public:
     // --- Deterministic scenario loading -----------------------------------
     //
     // CSV format (header required):
-    //   seq,id,source,time_ns,value,truth_label
+    //   seq,id,source,time,value,truth_label
     // source: "rcs" (proc1) or "length" (proc2)
     // truth_label: optional (empty means no truth label)
     void LoadScenarioFromCsv(const std::filesystem::path& csv_path,

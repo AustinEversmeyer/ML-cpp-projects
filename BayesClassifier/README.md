@@ -100,7 +100,7 @@ Controls input/output paths and data layout.
 Use named fields to map input columns/keys onto the model’s feature order.
 
   * `feature_fields`: **Crucial.** This array defines the order in which named keys are fed into the classifier. In the example below, the classifier expects Feature 0 to be "temperature" and Feature 1 to be "pressure".
-  * `output_use_index` (optional): When true, timesteps are assigned as a 0-based row index rather than read from the input. Useful if your input rows are stacked segments rather than chronological timesteps. The output column is always `time_ns` regardless of this setting.
+  * `output_use_index` (optional): When true, timesteps are assigned as a 0-based row index rather than read from the input. Useful if your input rows are stacked segments rather than chronological timesteps. The output column is always `time` regardless of this setting.
 
 <!-- end list -->
 
@@ -131,7 +131,7 @@ Provide an ordered feature vector that matches the model’s feature order.
 
 The CSV output always includes:
 
-- `time_ns` (integer nanoseconds)
+- `time` (opaque integer time ticks — unit matches whatever the caller passes in)
 - `id` (empty for CLI batch rows; populated by runtime pipeline rows when available)
 - `truth_label`
 - `classification_state` (`partial` or `full`)

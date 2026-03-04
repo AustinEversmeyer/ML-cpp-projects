@@ -22,7 +22,7 @@ class BayesRuntimeManager;
 // ---------------------------------------------------------------------------
 struct ClassificationResult {
     int    id;
-    int64_t time_ns;
+    int64_t time;
     std::optional<std::string> truth_label;
     std::string classification_state = "full";
     std::vector<std::pair<std::string, double>> feature_inputs;
@@ -40,20 +40,20 @@ struct ClassificationResult {
 //
 class BayesClassifierManager {
 public:
-    static constexpr int64_t kDefaultPartialGraceWindowNs = 200000000;
+    static constexpr int64_t kDefaultPartialGraceWindow = 200000000; // 200ms in nanoseconds (scale to your time unit)
 
     BayesClassifierManager(std::filesystem::path model_config_path,
-                           size_t max_records         = FeatureAlignmentStore::kDefaultMaxRecords,
-                           int64_t time_tolerance_ns  = FeatureAlignmentStore::kDefaultTimeToleranceNs,
+                           size_t max_records          = FeatureAlignmentStore::kDefaultMaxRecords,
+                           int64_t time_tolerance      = FeatureAlignmentStore::kDefaultTimeTolerance,
                            ClassificationTrigger trigger = ClassificationTrigger::kAllFeaturesUpdated,
-                           bool   allow_partial       = false);
+                           bool   allow_partial        = false);
 
     BayesClassifierManager(std::filesystem::path model_config_path,
                            size_t max_records,
-                           int64_t time_tolerance_ns,
+                           int64_t time_tolerance,
                            EvaluationPolicy evaluation_policy,
                            PartialPolicy partial_policy,
-                           int64_t partial_grace_window_ns = kDefaultPartialGraceWindowNs);
+                           int64_t partial_grace_window = kDefaultPartialGraceWindow);
 
     const std::vector<ClassificationResult>& GetLatestResults() const;
 
@@ -70,9 +70,9 @@ private:
     std::unique_ptr<naive_bayes::NaiveBayes>  bayesClassifier_;
     EvaluationPolicy      evaluation_policy_;
     PartialPolicy         partial_policy_;
-    int64_t               partial_grace_window_ns_;
+    int64_t               partial_grace_window_;
     std::string           last_event_feature_;
-    int64_t               last_event_time_ns_ = 0;
+    int64_t               last_event_time_ = 0;
 
     struct EmissionState {
         bool emitted_partial = false;
