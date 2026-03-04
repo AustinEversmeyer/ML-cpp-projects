@@ -428,6 +428,63 @@ in which case all listed classes together form the positive side of the binary s
 
 ---
 
+## Classification State and Missing Feature Pattern Analysis
+
+The pipeline emits a `classification_state` column in every output row — either `full` (all model features were present at evaluation time) or `partial` (one or more features were missing and filled with NaN). The analysis script surfaces this automatically.
+
+### Full vs Partial breakdown: `by_classification_state` in `metrics_summary.json`
+
+```json
+"by_classification_state": {
+  "full":    { "count": 40, "accuracy": 0.925, "macro_precision": 0.91, "macro_recall": 0.90, "macro_f1": 0.905 },
+  "partial": { "count": 12, "accuracy": 0.75,  "macro_precision": 0.72, "macro_recall": 0.68, "macro_f1": 0.700 }
+}
+```
+
+This tells you immediately whether partial rows are dragging down overall accuracy, and by how much.
+
+### Missing feature pattern breakdown: `by_missing_feature_pattern` in `metrics_summary.json`
+
+For partial rows, the script further groups by **which specific features were missing** and computes metrics per combination. This matters because different missing-feature combinations will degrade accuracy by different amounts — losing the primary discriminating feature is far more damaging than losing a secondary one.
+
+```json
+"by_missing_feature_pattern": {
+  "length": {
+    "count": 8,
+    "missing_features": ["length"],
+    "accuracy": 0.80,
+    "macro_precision": 0.78,
+    "macro_recall": 0.75,
+    "macro_f1": 0.765
+  },
+  "rcs": {
+    "count": 4,
+    "missing_features": ["rcs"],
+    "accuracy": 0.50,
+    "macro_precision": 0.48,
+    "macro_recall": 0.45,
+    "macro_f1": 0.465
+  },
+  "rcs,velocity": {
+    "count": 6,
+    "missing_features": ["rcs", "velocity"],
+    "accuracy": 0.33,
+    ...
+  }
+}
+```
+
+Pattern keys are comma-joined sorted feature names with the `feature_` prefix stripped. Patterns with fewer than `DEFAULT_MIN_PATTERN_COUNT` rows (default: 3) are omitted to avoid reporting on statistically meaningless samples.
+
+### How to interpret
+
+- **Full accuracy ≫ partial accuracy**: the grace-window timeout is forcing premature evaluations before enough features arrive — consider widening `partial_grace_window` in the runtime config.
+- **One missing-feature pattern degrades heavily**: that feature is highly discriminating. Investigate why it arrives late or not at all for those tracks.
+- **All partial patterns degrade similarly**: the model relies on full feature vectors generally; partial evaluation may not be appropriate for this application.
+- **Pattern counts grow with more features**: with N features there are up to 2^N − 1 possible missing combinations, but in practice only a handful of single-missing patterns dominate real data. Multi-feature misses usually indicate a systemic sensor dropout rather than timing variance.
+
+---
+
 ## Metric Definitions
 
 | Metric                    | What it actually is                                                               | What it tells you                                    | How to interpret values                                                                               |

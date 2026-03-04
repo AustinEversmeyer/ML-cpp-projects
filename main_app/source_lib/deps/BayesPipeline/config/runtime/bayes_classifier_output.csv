@@ -1,4 +1,4 @@
-time_ns,id,truth_label,classification_state,feature_rcs,feature_length,predicted_class,predicted_prob,prob_TargetSmall,prob_TargetMedium,prob_TargetLarge,predicted_group,predicted_group_prob,group_prob_SmallTargets,group_prob_LargeTargets
+time,id,truth_label,classification_state,feature_rcs,feature_length,predicted_class,predicted_prob,prob_TargetSmall,prob_TargetMedium,prob_TargetLarge,predicted_group,predicted_group_prob,group_prob_SmallTargets,group_prob_LargeTargets
 0,1,TargetMedium,full,5.710791,1.448240,TargetMedium,0.811255,0.000007,0.811255,0.188738,LargeTargets,0.999993,0.000007,0.999993
 0,0,TargetSmall,full,1.559812,0.859222,TargetSmall,0.957365,0.957365,0.042376,0.000259,SmallTargets,0.957365,0.957365,0.042635
 0,2,TargetLarge,full,7.166346,1.005032,TargetMedium,0.516854,0.000000,0.516854,0.483146,LargeTargets,1.000000,0.000000,1.000000

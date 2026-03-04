@@ -64,6 +64,7 @@ DEFAULT_PDF_LABEL_PRIORITY: list[str] = ["truth_label", "predicted_class"]
 DEFAULT_PDF_FEATURE_PREFIX = "feature_"
 DEFAULT_PDF_OUTPUT_DIR = "analysis_outputs_runtime/pdfs"
 DEFAULT_PDF_BINS = 30
+DEFAULT_MIN_PATTERN_COUNT = 3  # suppress missing-feature patterns with fewer rows than this
 # ----------------------------------------------------------------
 
 
@@ -259,6 +260,81 @@ def plot_binary_counts(counts: dict[str, float], output_dir: Path, keep_open: bo
     return destination
 
 
+def compute_metrics_for_subset(y_true: pd.Series, y_pred: pd.Series) -> dict:
+    """Compute standard classification metrics for an arbitrary subset of rows."""
+    n = len(y_true)
+    if n == 0:
+        return {"count": 0, "accuracy": None, "macro_precision": None, "macro_recall": None, "macro_f1": None}
+    return {
+        "count": n,
+        "accuracy": float(accuracy_score(y_true, y_pred)),
+        "macro_precision": float(precision_score(y_true, y_pred, average="macro", zero_division=0)),
+        "macro_recall": float(recall_score(y_true, y_pred, average="macro", zero_division=0)),
+        "macro_f1": float(f1_score(y_true, y_pred, average="macro", zero_division=0)),
+    }
+
+
+def compute_classification_state_metrics(
+    df: pd.DataFrame,
+    truth_col: str,
+    pred_col: str,
+    state_col: str = "classification_state",
+) -> dict[str, dict] | None:
+    """Break metrics down by classification_state value (e.g. 'full', 'partial')."""
+    if state_col not in df.columns:
+        return None
+    result: dict[str, dict] = {}
+    for state, group in df.groupby(state_col):
+        y_t = group[truth_col].astype(str)
+        y_p = group[pred_col].astype(str)
+        result[str(state)] = compute_metrics_for_subset(y_t, y_p)
+    return result
+
+
+def compute_missing_feature_pattern_metrics(
+    df: pd.DataFrame,
+    truth_col: str,
+    pred_col: str,
+    feature_prefix: str = "feature_",
+    state_col: str = "classification_state",
+    min_count: int = 3,
+) -> dict[str, dict] | None:
+    """
+    For partial rows: group by which feature columns are NaN and compute metrics per pattern.
+
+    Pattern key is a comma-joined sorted list of missing feature names (prefix stripped).
+    Patterns with fewer than min_count rows are omitted.
+    Returns None when classification_state column is absent; empty dict when no partial rows exist.
+    """
+    if state_col not in df.columns:
+        return None
+    partial_df = df[df[state_col] == "partial"]
+    if partial_df.empty:
+        return {}
+
+    feature_cols = [c for c in df.columns if c.startswith(feature_prefix)]
+    if not feature_cols:
+        return {}
+
+    def make_pattern(row: pd.Series) -> str:
+        missing = sorted(col[len(feature_prefix):] for col in feature_cols if pd.isna(row[col]))
+        return ",".join(missing) if missing else "(none missing)"
+
+    partial_df = partial_df.copy()
+    partial_df["_pattern"] = partial_df.apply(make_pattern, axis=1)
+
+    result: dict[str, dict] = {}
+    for pattern, group in partial_df.groupby("_pattern"):
+        if len(group) < min_count:
+            continue
+        y_t = group[truth_col].astype(str)
+        y_p = group[pred_col].astype(str)
+        entry = compute_metrics_for_subset(y_t, y_p)
+        entry["missing_features"] = pattern.split(",") if pattern != "(none missing)" else []
+        result[str(pattern)] = entry
+    return result
+
+
 def main() -> None:
     def log(msg: str) -> None:
         print(f"[analyze] {msg}")
@@ -378,6 +454,19 @@ def main() -> None:
     elif "predicted_prob" in df.columns:
         df["pred_prob"] = df["predicted_prob"]
 
+    log("Computing classification-state and missing-feature-pattern metrics ...")
+    state_metrics = compute_classification_state_metrics(df, truth_column, pred_column)
+    if state_metrics is not None:
+        metrics["by_classification_state"] = state_metrics
+
+    pattern_metrics = compute_missing_feature_pattern_metrics(
+        df, truth_column, pred_column,
+        feature_prefix=DEFAULT_PDF_FEATURE_PREFIX,
+        min_count=DEFAULT_MIN_PATTERN_COUNT,
+    )
+    if pattern_metrics is not None:
+        metrics["by_missing_feature_pattern"] = pattern_metrics
+
     log("Building classification report ...")
     report_dict = classification_report(
         y_true, y_pred, labels=labels, output_dict=True, zero_division=0
@@ -452,6 +541,19 @@ def main() -> None:
             for label, acc in value.items():
                 display = "n/a" if acc is None else f"{acc:.3f}"
                 print(f"    {label}: {display}")
+        elif key == "by_classification_state":
+            print("  by_classification_state:")
+            for state, m in value.items():
+                acc_str = "n/a" if m["accuracy"] is None else f"{m['accuracy']:.4f}"
+                f1_str = "n/a" if m["macro_f1"] is None else f"{m['macro_f1']:.4f}"
+                print(f"    {state}: count={m['count']}  accuracy={acc_str}  macro_f1={f1_str}")
+        elif key == "by_missing_feature_pattern":
+            if value:
+                print("  by_missing_feature_pattern (partial rows only):")
+                for pattern, m in value.items():
+                    acc_str = "n/a" if m["accuracy"] is None else f"{m['accuracy']:.4f}"
+                    f1_str = "n/a" if m["macro_f1"] is None else f"{m['macro_f1']:.4f}"
+                    print(f"    [{pattern}]: count={m['count']}  accuracy={acc_str}  macro_f1={f1_str}")
         elif isinstance(value, float):
             print(f"  {key}: {value:.4f}")
         else:
