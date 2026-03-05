@@ -103,9 +103,9 @@ const std::filesystem::path& BayesRuntimeManager::GetOutputFile() const {
 }
 
 void BayesRuntimeManager::Run() {
-    FeatureData event;
-    while (queue_.Pop(event)) {
-        manager_.RecordFeatureSample(event);
+    FeatureData feature_sample;
+    while (queue_.Pop(feature_sample)) {
+        manager_.RecordFeatureSample(feature_sample);
 
         if (manager_.ClassifyIfReady()) {
             for (const ClassificationResult& r : manager_.GetLatestResults()) {
