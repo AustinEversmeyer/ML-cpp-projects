@@ -325,6 +325,69 @@ The script prints the temporary directory where the artifacts landed so you can 
 classification report, metrics summary, and plots. Run it whenever you need to confirm the preprocessing or
 analysis pieces still work together.
 
+---
+
+## Post-Classification Collection & Label Remapping
+
+The script `tools/scripts/collect_and_remap.py` collects classification output CSVs from a directory tree, remaps integer truth labels (and predicted classes / probability columns) to human-readable strings using per-group mappings, and produces merged CSVs ready for analysis.
+
+### Use Case
+
+When the classifier outputs numeric `truth_label` values (e.g., `0`, `1`, `2`) that need to be converted to meaningful names, and results are spread across multiple run folders organized by group:
+
+```text
+results/
+    .../group1/.../Run1/.../classifications.csv
+    .../group1/.../Run2/.../classifications.csv
+    .../group2/.../Run1/.../classifications.csv
+```
+
+Group detection is flexible — the group name can appear at **any depth** in the path. The script matches directory components against the keys defined in the mapping file.
+
+### Mapping File Format
+
+A single JSON file defines label mappings per group (`config/label_mappings.example.json`):
+
+```json
+{
+    "group1": {"0": "Cat", "1": "Dog", "2": "Bird"},
+    "group2": {"0": "Healthy", "1": "Faulty", "2": "Degraded"}
+}
+```
+
+### What Gets Remapped
+
+* `truth_label` column values
+* `predicted_class` column values
+* `prob_*` column names (e.g., `prob_0` → `prob_Cat`)
+
+### Outputs
+
+All outputs are written to a single output directory:
+
+* `<group>_merged.csv` — per-group merged file with remapped labels
+* `all_merged.csv` — collective file across all groups
+
+Each row includes `source_file` and `group` columns for traceability.
+
+### Usage
+
+Edit the defaults at the top of the script, or call with overrides:
+
+```python
+from tools.scripts.collect_and_remap import run_collect_and_remap
+
+run_collect_and_remap(
+    results_root="path/to/results",
+    mapping_file="path/to/label_mappings.json",
+    output_dir="path/to/output",
+)
+```
+
+CSVs whose path does not contain any known group name (from the mapping file keys) are skipped.
+
+---
+
 Below is a clearer, more explanatory rewrite of that section. It keeps the same content but emphasizes **what each metric actually is**, **what problem it answers**, and **how to interpret it**, even for readers who are not ML experts.
 
 ---
