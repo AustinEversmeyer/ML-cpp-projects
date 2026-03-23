@@ -1,0 +1,12 @@
+{
+    "group1": {
+        "0": "Cat",
+        "1": "Dog",
+        "2": "Bird"
+    },
+    "group2": {
+        "0": "Healthy",
+        "1": "Faulty",
+        "2": "Degraded"
+    }
+}
